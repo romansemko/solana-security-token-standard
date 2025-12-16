@@ -1,7 +1,7 @@
 use rstest::*;
 use security_token_client::{
     accounts::Receipt,
-    types::{CreateRateArgs, RateArgs, Rounding},
+    types::{CreateRateArgs, RateConfig, Rounding},
 };
 use solana_pubkey::Pubkey;
 use solana_sdk::{native_token::sol_str_to_lamports, signature::Keypair, signer::Signer};
@@ -73,7 +73,7 @@ async fn test_should_split_with_mint_successfully() {
     let denominator = 1u8;
     let create_rate_args = CreateRateArgs {
         action_id,
-        rate: RateArgs {
+        rate: RateConfig {
             rounding,
             numerator,
             denominator,
@@ -192,7 +192,7 @@ async fn test_should_split_with_burn_successfully() {
     let denominator = 2u8;
     let create_rate_args = CreateRateArgs {
         action_id,
-        rate: RateArgs {
+        rate: RateConfig {
             rounding,
             numerator,
             denominator,
@@ -310,7 +310,7 @@ async fn test_should_not_split_twice() {
     let denominator = 2u8;
     let create_rate_args = CreateRateArgs {
         action_id,
-        rate: RateArgs {
+        rate: RateConfig {
             rounding,
             numerator,
             denominator,
@@ -414,7 +414,7 @@ async fn test_should_not_split_token_zero_amount() {
     let denominator = 2u8;
     let create_rate_args = CreateRateArgs {
         action_id,
-        rate: RateArgs {
+        rate: RateConfig {
             rounding,
             numerator,
             denominator,
@@ -566,7 +566,7 @@ async fn test_should_not_split_with_invalid_random_accounts(
     let denominator = 2u8;
     let create_rate_args = CreateRateArgs {
         action_id,
-        rate: RateArgs {
+        rate: RateConfig {
             rounding,
             numerator,
             denominator,
@@ -662,7 +662,7 @@ async fn test_should_not_split_not_owned_mint_or_token_account() {
     let denominator = 2u8;
     let create_rate_args = CreateRateArgs {
         action_id,
-        rate: RateArgs {
+        rate: RateConfig {
             rounding,
             numerator,
             denominator,

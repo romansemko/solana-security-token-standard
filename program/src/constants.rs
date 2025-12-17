@@ -22,6 +22,10 @@ pub mod seeds {
     pub const RECEIPT_ACCOUNT: &[u8] = b"receipt";
     /// Seed for extra account metas
     pub const EXTRA_ACCOUNT_METAS: &[u8] = b"extra-account-metas";
+    /// Seed for proof account PDA
+    pub const PROOF_ACCOUNT: &[u8] = b"proof";
+    /// Seed for distribution escrow authority PDA
+    pub const DISTRIBUTION_ESCROW_AUTHORITY: &[u8] = b"distribution_escrow_authority";
 }
 
 /// Offset to skip verification overhead accounts (mint, verification_config/mint_authority, instructions_sysvar/signer)

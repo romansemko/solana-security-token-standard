@@ -19,6 +19,7 @@ impl CreateRateArgs {
     /// Fixed size: action_id (8 bytes) + rate arguments (3 bytes) = 11 bytes
     pub const LEN: usize = ACTION_AND_RATE_ARGS_LEN;
 
+    /// Parse CreateRateArgs from bytes
     pub fn try_from_bytes(data: &[u8]) -> Result<Self, ProgramError> {
         let (action_id, rate) = parse_action_and_rate(data)?;
         Ok(Self { action_id, rate })

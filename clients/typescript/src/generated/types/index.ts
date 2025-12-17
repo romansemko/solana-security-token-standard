@@ -6,8 +6,13 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from './claimDistributionArgs';
+export * from './closeActionReceiptArgs';
+export * from './closeClaimReceiptArgs';
 export * from './closeRateArgs';
 export * from './convertArgs';
+export * from './createDistributionEscrowArgs';
+export * from './createProofArgs';
 export * from './createRateArgs';
 export * from './initializeMintArgs';
 export * from './initializeVerificationConfigArgs';
@@ -20,6 +25,7 @@ export * from './splitArgs';
 export * from './tokenMetadataArgs';
 export * from './trimVerificationConfigArgs';
 export * from './updateMetadataArgs';
+export * from './updateProofArgs';
 export * from './updateRateArgs';
 export * from './updateVerificationConfigArgs';
 export * from './verifyArgs';

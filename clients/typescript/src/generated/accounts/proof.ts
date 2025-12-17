@@ -13,115 +13,106 @@ import {
   decodeAccount,
   fetchEncodedAccount,
   fetchEncodedAccounts,
-  getAddressDecoder,
-  getAddressEncoder,
+  fixDecoderSize,
+  fixEncoderSize,
+  getArrayDecoder,
+  getArrayEncoder,
+  getBytesDecoder,
+  getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU64Decoder,
-  getU64Encoder,
   getU8Decoder,
   getU8Encoder,
   type Account,
   type Address,
+  type Codec,
+  type Decoder,
   type EncodedAccount,
+  type Encoder,
   type FetchAccountConfig,
   type FetchAccountsConfig,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
   type MaybeAccount,
   type MaybeEncodedAccount,
+  type ReadonlyUint8Array,
 } from '@solana/kit';
 
-export type Receipt = {
+export type Proof = {
   discriminator: number;
-  mint: Address;
-  actionId: bigint;
   bump: number;
+  data: Array<ReadonlyUint8Array>;
 };
 
-export type ReceiptArgs = {
-  discriminator: number;
-  mint: Address;
-  actionId: number | bigint;
-  bump: number;
-};
+export type ProofArgs = Proof;
 
-export function getReceiptEncoder(): FixedSizeEncoder<ReceiptArgs> {
+export function getProofEncoder(): Encoder<ProofArgs> {
   return getStructEncoder([
     ['discriminator', getU8Encoder()],
-    ['mint', getAddressEncoder()],
-    ['actionId', getU64Encoder()],
     ['bump', getU8Encoder()],
+    ['data', getArrayEncoder(fixEncoderSize(getBytesEncoder(), 32))],
   ]);
 }
 
-export function getReceiptDecoder(): FixedSizeDecoder<Receipt> {
+export function getProofDecoder(): Decoder<Proof> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
-    ['mint', getAddressDecoder()],
-    ['actionId', getU64Decoder()],
     ['bump', getU8Decoder()],
+    ['data', getArrayDecoder(fixDecoderSize(getBytesDecoder(), 32))],
   ]);
 }
 
-export function getReceiptCodec(): FixedSizeCodec<ReceiptArgs, Receipt> {
-  return combineCodec(getReceiptEncoder(), getReceiptDecoder());
+export function getProofCodec(): Codec<ProofArgs, Proof> {
+  return combineCodec(getProofEncoder(), getProofDecoder());
 }
 
-export function decodeReceipt<TAddress extends string = string>(
+export function decodeProof<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress>
-): Account<Receipt, TAddress>;
-export function decodeReceipt<TAddress extends string = string>(
+): Account<Proof, TAddress>;
+export function decodeProof<TAddress extends string = string>(
   encodedAccount: MaybeEncodedAccount<TAddress>
-): MaybeAccount<Receipt, TAddress>;
-export function decodeReceipt<TAddress extends string = string>(
+): MaybeAccount<Proof, TAddress>;
+export function decodeProof<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>
-): Account<Receipt, TAddress> | MaybeAccount<Receipt, TAddress> {
+): Account<Proof, TAddress> | MaybeAccount<Proof, TAddress> {
   return decodeAccount(
     encodedAccount as MaybeEncodedAccount<TAddress>,
-    getReceiptDecoder()
+    getProofDecoder()
   );
 }
 
-export async function fetchReceipt<TAddress extends string = string>(
+export async function fetchProof<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
   address: Address<TAddress>,
   config?: FetchAccountConfig
-): Promise<Account<Receipt, TAddress>> {
-  const maybeAccount = await fetchMaybeReceipt(rpc, address, config);
+): Promise<Account<Proof, TAddress>> {
+  const maybeAccount = await fetchMaybeProof(rpc, address, config);
   assertAccountExists(maybeAccount);
   return maybeAccount;
 }
 
-export async function fetchMaybeReceipt<TAddress extends string = string>(
+export async function fetchMaybeProof<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
   address: Address<TAddress>,
   config?: FetchAccountConfig
-): Promise<MaybeAccount<Receipt, TAddress>> {
+): Promise<MaybeAccount<Proof, TAddress>> {
   const maybeAccount = await fetchEncodedAccount(rpc, address, config);
-  return decodeReceipt(maybeAccount);
+  return decodeProof(maybeAccount);
 }
 
-export async function fetchAllReceipt(
+export async function fetchAllProof(
   rpc: Parameters<typeof fetchEncodedAccounts>[0],
   addresses: Array<Address>,
   config?: FetchAccountsConfig
-): Promise<Account<Receipt>[]> {
-  const maybeAccounts = await fetchAllMaybeReceipt(rpc, addresses, config);
+): Promise<Account<Proof>[]> {
+  const maybeAccounts = await fetchAllMaybeProof(rpc, addresses, config);
   assertAccountsExist(maybeAccounts);
   return maybeAccounts;
 }
 
-export async function fetchAllMaybeReceipt(
+export async function fetchAllMaybeProof(
   rpc: Parameters<typeof fetchEncodedAccounts>[0],
   addresses: Array<Address>,
   config?: FetchAccountsConfig
-): Promise<MaybeAccount<Receipt>[]> {
+): Promise<MaybeAccount<Proof>[]> {
   const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
-  return maybeAccounts.map((maybeAccount) => decodeReceipt(maybeAccount));
-}
-
-export function getReceiptSize(): number {
-  return 41;
+  return maybeAccounts.map((maybeAccount) => decodeProof(maybeAccount));
 }

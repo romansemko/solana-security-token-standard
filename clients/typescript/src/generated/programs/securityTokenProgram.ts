@@ -14,8 +14,13 @@ import {
 } from '@solana/kit';
 import {
   type ParsedBurnInstruction,
+  type ParsedClaimDistributionInstruction,
+  type ParsedCloseActionReceiptAccountInstruction,
+  type ParsedCloseClaimReceiptAccountInstruction,
   type ParsedCloseRateAccountInstruction,
   type ParsedConvertInstruction,
+  type ParsedCreateDistributionEscrowInstruction,
+  type ParsedCreateProofAccountInstruction,
   type ParsedCreateRateAccountInstruction,
   type ParsedFreezeInstruction,
   type ParsedInitializeMintInstruction,
@@ -28,6 +33,7 @@ import {
   type ParsedTransferInstruction,
   type ParsedTrimVerificationConfigInstruction,
   type ParsedUpdateMetadataInstruction,
+  type ParsedUpdateProofAccountInstruction,
   type ParsedUpdateRateAccountInstruction,
   type ParsedUpdateVerificationConfigInstruction,
   type ParsedVerifyInstruction,
@@ -38,8 +44,8 @@ export const SECURITY_TOKEN_PROGRAM_PROGRAM_ADDRESS =
 
 export enum SecurityTokenProgramAccount {
   MintAuthority,
+  Proof,
   Rate,
-  Receipt,
   VerificationConfig,
 }
 
@@ -62,6 +68,12 @@ export enum SecurityTokenProgramInstruction {
   CloseRateAccount,
   Split,
   Convert,
+  CreateProofAccount,
+  UpdateProofAccount,
+  CreateDistributionEscrow,
+  ClaimDistribution,
+  CloseActionReceiptAccount,
+  CloseClaimReceiptAccount,
 }
 
 export function identifySecurityTokenProgramInstruction(
@@ -121,6 +133,24 @@ export function identifySecurityTokenProgramInstruction(
   }
   if (containsBytes(data, getU8Encoder().encode(17), 0)) {
     return SecurityTokenProgramInstruction.Convert;
+  }
+  if (containsBytes(data, getU8Encoder().encode(18), 0)) {
+    return SecurityTokenProgramInstruction.CreateProofAccount;
+  }
+  if (containsBytes(data, getU8Encoder().encode(19), 0)) {
+    return SecurityTokenProgramInstruction.UpdateProofAccount;
+  }
+  if (containsBytes(data, getU8Encoder().encode(20), 0)) {
+    return SecurityTokenProgramInstruction.CreateDistributionEscrow;
+  }
+  if (containsBytes(data, getU8Encoder().encode(21), 0)) {
+    return SecurityTokenProgramInstruction.ClaimDistribution;
+  }
+  if (containsBytes(data, getU8Encoder().encode(22), 0)) {
+    return SecurityTokenProgramInstruction.CloseActionReceiptAccount;
+  }
+  if (containsBytes(data, getU8Encoder().encode(23), 0)) {
+    return SecurityTokenProgramInstruction.CloseClaimReceiptAccount;
   }
   throw new Error(
     'The provided instruction could not be identified as a securityTokenProgram instruction.'
@@ -183,4 +213,22 @@ export type ParsedSecurityTokenProgramInstruction<
     } & ParsedSplitInstruction<TProgram>)
   | ({
       instructionType: SecurityTokenProgramInstruction.Convert;
-    } & ParsedConvertInstruction<TProgram>);
+    } & ParsedConvertInstruction<TProgram>)
+  | ({
+      instructionType: SecurityTokenProgramInstruction.CreateProofAccount;
+    } & ParsedCreateProofAccountInstruction<TProgram>)
+  | ({
+      instructionType: SecurityTokenProgramInstruction.UpdateProofAccount;
+    } & ParsedUpdateProofAccountInstruction<TProgram>)
+  | ({
+      instructionType: SecurityTokenProgramInstruction.CreateDistributionEscrow;
+    } & ParsedCreateDistributionEscrowInstruction<TProgram>)
+  | ({
+      instructionType: SecurityTokenProgramInstruction.ClaimDistribution;
+    } & ParsedClaimDistributionInstruction<TProgram>)
+  | ({
+      instructionType: SecurityTokenProgramInstruction.CloseActionReceiptAccount;
+    } & ParsedCloseActionReceiptAccountInstruction<TProgram>)
+  | ({
+      instructionType: SecurityTokenProgramInstruction.CloseClaimReceiptAccount;
+    } & ParsedCloseClaimReceiptAccountInstruction<TProgram>);

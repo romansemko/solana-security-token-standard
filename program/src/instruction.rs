@@ -22,6 +22,12 @@ pub enum SecurityTokenInstruction {
     CloseRateAccount = 15,
     Split = 16,
     Convert = 17,
+    CreateProofAccount = 18,
+    UpdateProofAccount = 19,
+    CreateDistributionEscrow = 20,
+    ClaimDistribution = 21,
+    CloseActionReceiptAccount = 22,
+    CloseClaimReceiptAccount = 23,
 }
 
 impl TryFrom<u8> for SecurityTokenInstruction {
@@ -47,6 +53,12 @@ impl TryFrom<u8> for SecurityTokenInstruction {
             15 => Ok(SecurityTokenInstruction::CloseRateAccount),
             16 => Ok(SecurityTokenInstruction::Split),
             17 => Ok(SecurityTokenInstruction::Convert),
+            18 => Ok(SecurityTokenInstruction::CreateProofAccount),
+            19 => Ok(SecurityTokenInstruction::UpdateProofAccount),
+            20 => Ok(SecurityTokenInstruction::CreateDistributionEscrow),
+            21 => Ok(SecurityTokenInstruction::ClaimDistribution),
+            22 => Ok(SecurityTokenInstruction::CloseActionReceiptAccount),
+            23 => Ok(SecurityTokenInstruction::CloseClaimReceiptAccount),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -81,8 +93,11 @@ impl SecurityTokenInstruction {
 mod idl_gen {
 
     use crate::instructions::{
-        close_rate_account::CloseRateArgs, convert::ConvertArgs, split::SplitArgs,
-        update_rate_account::UpdateRateArgs, CreateRateArgs, InitializeMintArgs,
+        close_rate_account::CloseRateArgs, convert::ConvertArgs,
+        create_proof_account::CreateProofArgs, split::SplitArgs,
+        update_proof_account::UpdateProofArgs, update_rate_account::UpdateRateArgs,
+        ClaimDistributionArgs, CloseActionReceiptArgs, CloseClaimReceiptArgs,
+        CreateDistributionEscrowArgs, CreateRateArgs, InitializeMintArgs,
         InitializeVerificationConfigArgs, TrimVerificationConfigArgs, UpdateMetadataArgs,
         UpdateVerificationConfigArgs, VerifyArgs,
     };
@@ -306,5 +321,82 @@ mod idl_gen {
         #[account(12, name = "token_program")]
         #[account(13, name = "system_program")]
         Convert(ConvertArgs) = 17,
+
+        // Verification overhead
+        #[account(0, name = "mint")]
+        #[account(1, name = "verification_config")]
+        #[account(2, name = "instructions_sysvar")]
+        // Instruction accounts
+        #[account(3, writable, signer, name = "payer")]
+        #[account(4, name = "mint_account")]
+        #[account(5, writable, name = "proof_account")]
+        #[account(6, name = "token_account")]
+        #[account(7, name = "system_program")]
+        CreateProofAccount(CreateProofArgs) = 18,
+
+        // Verification overhead
+        #[account(0, name = "mint")]
+        #[account(1, name = "verification_config")]
+        #[account(2, name = "instructions_sysvar")]
+        // Instruction accounts
+        #[account(3, writable, signer, name = "payer")]
+        #[account(4, name = "mint_account")]
+        #[account(5, writable, name = "proof_account")]
+        #[account(6, name = "token_account")]
+        #[account(7, name = "system_program")]
+        UpdateProofAccount(UpdateProofArgs) = 19,
+
+        // Verification overhead
+        #[account(0, name = "mint")]
+        #[account(1, name = "verification_config_or_mint_authority")]
+        #[account(2, name = "instructions_sysvar_or_creator")]
+        // Instruction accounts
+        #[account(3, name = "distribution_escrow_authority")]
+        #[account(4, writable, signer, name = "payer")]
+        #[account(5, writable, name = "distribution_token_account")]
+        #[account(6, name = "distribution_mint")]
+        #[account(7, name = "token_program")]
+        #[account(8, name = "associated_token_account_program")]
+        #[account(9, name = "system_program")]
+        CreateDistributionEscrow(CreateDistributionEscrowArgs) = 20,
+
+        // Verification overhead
+        #[account(0, name = "mint")]
+        #[account(1, name = "verification_config")]
+        #[account(2, name = "instructions_sysvar")]
+        // Instruction accounts
+        #[account(3, name = "permanent_delegate_authority")]
+        #[account(4, writable, signer, name = "payer")]
+        #[account(5, name = "mint_account")]
+        #[account(6, writable, name = "eligible_token_account")]
+        #[account(7, writable, optional, name = "escrow_token_account")]
+        #[account(8, writable, name = "receipt_account")]
+        #[account(9, optional, name = "proof_account")]
+        #[account(10, name = "transfer_hook_program")]
+        #[account(11, name = "token_program")]
+        #[account(12, name = "system_program")]
+        ClaimDistribution(ClaimDistributionArgs) = 21,
+
+        // Verification overhead
+        #[account(0, name = "mint")]
+        #[account(1, name = "verification_config_or_mint_authority")]
+        #[account(2, name = "instructions_sysvar_or_creator")]
+        // Instruction accounts
+        #[account(3, writable, name = "receipt_account")]
+        #[account(4, writable, name = "destination")]
+        #[account(5, name = "mint_account")]
+        CloseActionReceiptAccount(CloseActionReceiptArgs) = 22,
+
+        // Verification overhead
+        #[account(0, name = "mint")]
+        #[account(1, name = "verification_config_or_mint_authority")]
+        #[account(2, name = "instructions_sysvar_or_creator")]
+        // Instruction accounts
+        #[account(3, writable, name = "receipt_account")]
+        #[account(4, writable, name = "destination")]
+        #[account(5, name = "mint_account")]
+        #[account(6, name = "eligible_token_account")]
+        #[account(7, optional, name = "proof_account")]
+        CloseClaimReceiptAccount(CloseClaimReceiptArgs) = 23,
     }
 }

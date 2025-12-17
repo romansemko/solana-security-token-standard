@@ -7,24 +7,16 @@
 
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
-use solana_pubkey::Pubkey;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Receipt {
+pub struct Proof {
     pub discriminator: u8,
-    #[cfg_attr(
-        feature = "serde",
-        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
-    )]
-    pub mint: Pubkey,
-    pub action_id: u64,
     pub bump: u8,
+    pub data: Vec<[u8; 32]>,
 }
 
-impl Receipt {
-    pub const LEN: usize = 41;
-
+impl Proof {
     #[inline(always)]
     pub fn from_bytes(data: &[u8]) -> Result<Self, std::io::Error> {
         let mut data = data;
@@ -32,7 +24,7 @@ impl Receipt {
     }
 }
 
-impl<'a> TryFrom<&solana_account_info::AccountInfo<'a>> for Receipt {
+impl<'a> TryFrom<&solana_account_info::AccountInfo<'a>> for Proof {
     type Error = std::io::Error;
 
     fn try_from(account_info: &solana_account_info::AccountInfo<'a>) -> Result<Self, Self::Error> {
@@ -42,30 +34,30 @@ impl<'a> TryFrom<&solana_account_info::AccountInfo<'a>> for Receipt {
 }
 
 #[cfg(feature = "fetch")]
-pub fn fetch_receipt(
+pub fn fetch_proof(
     rpc: &solana_client::rpc_client::RpcClient,
     address: &solana_pubkey::Pubkey,
-) -> Result<crate::shared::DecodedAccount<Receipt>, std::io::Error> {
-    let accounts = fetch_all_receipt(rpc, &[*address])?;
+) -> Result<crate::shared::DecodedAccount<Proof>, std::io::Error> {
+    let accounts = fetch_all_proof(rpc, &[*address])?;
     Ok(accounts[0].clone())
 }
 
 #[cfg(feature = "fetch")]
-pub fn fetch_all_receipt(
+pub fn fetch_all_proof(
     rpc: &solana_client::rpc_client::RpcClient,
     addresses: &[solana_pubkey::Pubkey],
-) -> Result<Vec<crate::shared::DecodedAccount<Receipt>>, std::io::Error> {
+) -> Result<Vec<crate::shared::DecodedAccount<Proof>>, std::io::Error> {
     let accounts = rpc
         .get_multiple_accounts(addresses)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-    let mut decoded_accounts: Vec<crate::shared::DecodedAccount<Receipt>> = Vec::new();
+    let mut decoded_accounts: Vec<crate::shared::DecodedAccount<Proof>> = Vec::new();
     for i in 0..addresses.len() {
         let address = addresses[i];
         let account = accounts[i].as_ref().ok_or(std::io::Error::new(
             std::io::ErrorKind::Other,
             format!("Account not found: {}", address),
         ))?;
-        let data = Receipt::from_bytes(&account.data)?;
+        let data = Proof::from_bytes(&account.data)?;
         decoded_accounts.push(crate::shared::DecodedAccount {
             address,
             account: account.clone(),
@@ -76,27 +68,27 @@ pub fn fetch_all_receipt(
 }
 
 #[cfg(feature = "fetch")]
-pub fn fetch_maybe_receipt(
+pub fn fetch_maybe_proof(
     rpc: &solana_client::rpc_client::RpcClient,
     address: &solana_pubkey::Pubkey,
-) -> Result<crate::shared::MaybeAccount<Receipt>, std::io::Error> {
-    let accounts = fetch_all_maybe_receipt(rpc, &[*address])?;
+) -> Result<crate::shared::MaybeAccount<Proof>, std::io::Error> {
+    let accounts = fetch_all_maybe_proof(rpc, &[*address])?;
     Ok(accounts[0].clone())
 }
 
 #[cfg(feature = "fetch")]
-pub fn fetch_all_maybe_receipt(
+pub fn fetch_all_maybe_proof(
     rpc: &solana_client::rpc_client::RpcClient,
     addresses: &[solana_pubkey::Pubkey],
-) -> Result<Vec<crate::shared::MaybeAccount<Receipt>>, std::io::Error> {
+) -> Result<Vec<crate::shared::MaybeAccount<Proof>>, std::io::Error> {
     let accounts = rpc
         .get_multiple_accounts(addresses)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-    let mut decoded_accounts: Vec<crate::shared::MaybeAccount<Receipt>> = Vec::new();
+    let mut decoded_accounts: Vec<crate::shared::MaybeAccount<Proof>> = Vec::new();
     for i in 0..addresses.len() {
         let address = addresses[i];
         if let Some(account) = accounts[i].as_ref() {
-            let data = Receipt::from_bytes(&account.data)?;
+            let data = Proof::from_bytes(&account.data)?;
             decoded_accounts.push(crate::shared::MaybeAccount::Exists(
                 crate::shared::DecodedAccount {
                     address,
@@ -112,26 +104,26 @@ pub fn fetch_all_maybe_receipt(
 }
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::AccountDeserialize for Receipt {
+impl anchor_lang::AccountDeserialize for Proof {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_lang::Result<Self> {
         Ok(Self::deserialize(buf)?)
     }
 }
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::AccountSerialize for Receipt {}
+impl anchor_lang::AccountSerialize for Proof {}
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::Owner for Receipt {
+impl anchor_lang::Owner for Proof {
     fn owner() -> Pubkey {
         crate::SECURITY_TOKEN_PROGRAM_ID
     }
 }
 
 #[cfg(feature = "anchor-idl-build")]
-impl anchor_lang::IdlBuild for Receipt {}
+impl anchor_lang::IdlBuild for Proof {}
 
 #[cfg(feature = "anchor-idl-build")]
-impl anchor_lang::Discriminator for Receipt {
+impl anchor_lang::Discriminator for Proof {
     const DISCRIMINATOR: &[u8] = &[0; 8];
 }

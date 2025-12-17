@@ -25,7 +25,7 @@ async fn test_should_create_rate_account_operation_for_split_mints() {
 
     let mint_from_keypair = Keypair::new();
     let decimals = 6u8;
-    let (mint_authority_pda, _freeze_authority_pda, _spl_token_2022_program) =
+    let (mint_authority_pda, _freeze_authority_pda) =
         create_minimal_security_token_mint(&mut context, &mint_from_keypair, None, decimals).await;
 
     let action_id = 42u64;
@@ -98,9 +98,9 @@ async fn test_should_create_rate_account_operation_with_conversion_mints() {
     let decimals = 6u8;
 
     // Conversion operation (different mints). mint_to should be used
-    let (_mint_authority_pda_from, _, _) =
+    let (_mint_authority_pda_from, _) =
         create_minimal_security_token_mint(&mut context, &mint_from_keypair, None, decimals).await;
-    let (mint_authority_pda_to, _, _) =
+    let (mint_authority_pda_to, _) =
         create_minimal_security_token_mint(&mut context, &mint_to_keypair, None, decimals).await;
 
     let action_id = 100u64;
@@ -157,7 +157,7 @@ async fn test_should_fail_invalid_create_rate_account_instruction(
     let mint_keypair = Keypair::new();
     let decimals = 9u8;
 
-    let (mint_authority_pda, _, _) =
+    let (mint_authority_pda, _) =
         create_minimal_security_token_mint(&mut context, &mint_keypair, None, decimals).await;
 
     let create_rate_args = CreateRateArgs {
@@ -190,7 +190,7 @@ async fn test_should_not_create_rate_account_twice() {
 
     let mint_from_keypair = Keypair::new();
     let decimals = 6u8;
-    let (mint_authority_pda, _freeze_authority_pda, _spl_token_2022_program) =
+    let (mint_authority_pda, _freeze_authority_pda) =
         create_minimal_security_token_mint(&mut context, &mint_from_keypair, None, decimals).await;
 
     let action_id = 42u64;
@@ -245,9 +245,9 @@ async fn test_should_create_both_split_and_conversion_rate_accounts() {
     let mint_from_keypair = Keypair::new();
     let mint_to_keypair = Keypair::new();
     let decimals = 6u8;
-    let (mint_authority_pda_from, _, _) =
+    let (mint_authority_pda_from, _) =
         create_minimal_security_token_mint(&mut context, &mint_from_keypair, None, decimals).await;
-    let (mint_authority_pda_to, _, _) =
+    let (mint_authority_pda_to, _) =
         create_minimal_security_token_mint(&mut context, &mint_to_keypair, None, decimals).await;
 
     let action_id = 42u64;
@@ -301,7 +301,7 @@ async fn test_should_not_create_rate_account_for_not_initial_mint() {
 
     let initial_mint_keypair = Keypair::new();
     let decimals = 6u8;
-    let (mint_authority_pda, _freeze_authority_pda, _spl_token_2022_program) =
+    let (mint_authority_pda, _freeze_authority_pda) =
         create_minimal_security_token_mint(&mut context, &initial_mint_keypair, None, decimals)
             .await;
 
@@ -344,7 +344,7 @@ async fn test_should_not_create_invalid_pda_rate_account() {
 
     let initial_mint_keypair = Keypair::new();
     let decimals = 6u8;
-    let (mint_authority_pda, _freeze_authority_pda, _spl_token_2022_program) =
+    let (mint_authority_pda, _freeze_authority_pda) =
         create_minimal_security_token_mint(&mut context, &initial_mint_keypair, None, decimals)
             .await;
 
@@ -392,7 +392,7 @@ async fn test_should_not_create_rate_account_with_invalid_system_program_id() {
 
     let initial_mint_keypair = Keypair::new();
     let decimals = 6u8;
-    let (mint_authority_pda, _freeze_authority_pda, _spl_token_2022_program) =
+    let (mint_authority_pda, _freeze_authority_pda) =
         create_minimal_security_token_mint(&mut context, &initial_mint_keypair, None, decimals)
             .await;
 
@@ -446,7 +446,7 @@ async fn test_should_re_create_closed_rate_account() {
 
     let mint_keypair = Keypair::new();
     let decimals = 6u8;
-    let (mint_authority_pda, _freeze_authority_pda, _spl_token_2022_program) =
+    let (mint_authority_pda, _freeze_authority_pda) =
         create_minimal_security_token_mint(&mut context, &mint_keypair, None, decimals).await;
 
     let action_id = 42u64;
@@ -483,6 +483,7 @@ async fn test_should_re_create_closed_rate_account() {
         context.payer.pubkey(),
         rate_mint_pubkey,
         rate_mint_pubkey,
+        None,
         CloseRateArgs { action_id },
     )
     .await;

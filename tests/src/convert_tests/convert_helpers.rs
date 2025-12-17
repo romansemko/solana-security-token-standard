@@ -90,7 +90,7 @@ pub async fn build_creator_resources(
 
     let mint_keypair = Keypair::new();
     let mint_pubkey = mint_keypair.pubkey();
-    let (mint_authority_pda, _, _) =
+    let (mint_authority_pda, _) =
         create_minimal_security_token_mint(context, &mint_keypair, Some(mint_creator), decimals)
             .await;
 

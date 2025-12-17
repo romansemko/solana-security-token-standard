@@ -28,7 +28,7 @@ async fn test_should_update_existing_rate_account() {
 
     let mint_keypair = Keypair::new();
     let decimals = 6u8;
-    let (mint_authority_pda, _freeze_authority_pda, _spl_token_2022_program) =
+    let (mint_authority_pda, _freeze_authority_pda) =
         create_minimal_security_token_mint(&mut context, &mint_keypair, None, decimals).await;
 
     let action_id = 42u64;
@@ -128,7 +128,7 @@ async fn test_should_fail_invalid_update_rate_account(
 
     let mint_keypair = Keypair::new();
     let decimals = 6u8;
-    let (mint_authority_pda, _freeze_authority_pda, _spl_token_2022_program) =
+    let (mint_authority_pda, _freeze_authority_pda) =
         create_minimal_security_token_mint(&mut context, &mint_keypair, None, decimals).await;
     let mint_from_pubkey = mint_keypair.pubkey();
     let mint_to_pubkey = mint_from_pubkey.clone();
@@ -190,7 +190,7 @@ async fn test_should_not_update_not_owned_rate_account() {
     let mint_from_keypair = Keypair::new();
     let mint_creator1 = context.payer.pubkey();
     let decimals = 6u8;
-    let (mint_authority_pda, _freeze_authority_pda, _spl_token_2022_program) =
+    let (mint_authority_pda, _freeze_authority_pda) =
         create_minimal_security_token_mint(&mut context, &mint_from_keypair, None, decimals).await;
 
     let action_id = 42u64;
@@ -237,7 +237,7 @@ async fn test_should_not_update_not_owned_rate_account() {
     let mint_creator2 = owner2.pubkey();
 
     let decimals = 6u8;
-    let (mint_authority_pda2, _, _) =
+    let (mint_authority_pda2, _) =
         create_minimal_security_token_mint(&mut context, &mint_keypair2, Some(&owner2), decimals)
             .await;
 
@@ -314,7 +314,7 @@ async fn test_should_not_update_not_existed_rate_account() {
     let mint_from_pubkey = mint_keypair.pubkey();
     let mint_to_pubkey = mint_from_pubkey.clone();
     let decimals = 6u8;
-    let (mint_authority_pda, _freeze_authority_pda, _spl_token_2022_program) =
+    let (mint_authority_pda, _freeze_authority_pda) =
         create_minimal_security_token_mint(&mut context, &mint_keypair, None, decimals).await;
 
     // Random Rate account
@@ -358,7 +358,7 @@ async fn test_should_not_update_closed_rate_account() {
     let mint_from_pubkey = mint_keypair.pubkey();
     let mint_to_pubkey = mint_keypair.pubkey();
     let decimals = 6u8;
-    let (mint_authority_pda, _, _) =
+    let (mint_authority_pda, _) =
         create_minimal_security_token_mint(&mut context, &mint_keypair, None, decimals).await;
 
     let action_id = 42u64;
@@ -396,6 +396,7 @@ async fn test_should_not_update_closed_rate_account() {
         context.payer.pubkey(),
         mint_from_pubkey,
         mint_to_pubkey,
+        None,
         CloseRateArgs { action_id },
     )
     .await;

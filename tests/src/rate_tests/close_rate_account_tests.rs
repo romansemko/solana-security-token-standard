@@ -8,7 +8,7 @@ use solana_sdk::{
 use crate::{
     helpers::{
         assert_account_exists, assert_transaction_success, create_minimal_security_token_mint,
-        start_with_context, start_with_context_and_accounts, TX_FEE,
+        get_balance, start_with_context, start_with_context_and_accounts, TX_FEE,
     },
     rate_tests::rate_helpers::{close_rate_account, create_rate_account},
 };
@@ -20,9 +20,9 @@ async fn test_should_close_rate_account() {
     let mint_from_keypair = Keypair::new();
     let mint_to_keypair = Keypair::new();
     let decimals = 6u8;
-    let (mint_authority_pda_from, _, _) =
+    let (mint_authority_pda_from, _) =
         create_minimal_security_token_mint(&mut context, &mint_from_keypair, None, decimals).await;
-    let (mint_authority_pda_to, _, _) =
+    let (mint_authority_pda_to, _) =
         create_minimal_security_token_mint(&mut context, &mint_to_keypair, None, decimals).await;
 
     let action_id = 42u64;
@@ -76,11 +76,7 @@ async fn test_should_close_rate_account() {
         .await
         .unwrap();
 
-    let payer_balance_before = context
-        .banks_client
-        .get_balance(context.payer.pubkey())
-        .await
-        .unwrap();
+    let payer_balance_before = get_balance(&context.banks_client, context.payer.pubkey()).await;
 
     // Close Rate account 1
     let result = close_rate_account(
@@ -90,6 +86,7 @@ async fn test_should_close_rate_account() {
         context.payer.pubkey(),
         mint_from_pubkey,
         mint_from_pubkey,
+        None,
         CloseRateArgs { action_id },
     )
     .await;
@@ -99,11 +96,8 @@ async fn test_should_close_rate_account() {
     assert_account_exists(context, rate_pda2, true).await;
 
     // Check payer received rent lamports from closed account
-    let payer_balance_after_close1 = context
-        .banks_client
-        .get_balance(context.payer.pubkey())
-        .await
-        .unwrap();
+    let payer_balance_after_close1 =
+        get_balance(&context.banks_client, context.payer.pubkey()).await;
 
     let rent_refund1 = payer_balance_after_close1 - payer_balance_before + TX_FEE;
     let rate_account_rent1 = rate_account1.lamports;
@@ -120,6 +114,7 @@ async fn test_should_close_rate_account() {
         context.payer.pubkey(),
         mint_from_pubkey,
         mint_to_pubkey,
+        None,
         CloseRateArgs { action_id },
     )
     .await;
@@ -128,11 +123,8 @@ async fn test_should_close_rate_account() {
     assert_account_exists(context, rate_pda1, false).await;
     assert_account_exists(context, rate_pda2, false).await;
 
-    let payer_balance_after_close2 = context
-        .banks_client
-        .get_balance(context.payer.pubkey())
-        .await
-        .unwrap();
+    let payer_balance_after_close2 =
+        get_balance(&context.banks_client, context.payer.pubkey()).await;
 
     let rent_refund2 = payer_balance_after_close2 - payer_balance_after_close1 + TX_FEE;
     let rate_account_rent2 = rate_account2.lamports;
@@ -149,6 +141,7 @@ async fn test_should_close_rate_account() {
         context.payer.pubkey(),
         mint_from_pubkey,
         mint_from_pubkey,
+        None,
         CloseRateArgs { action_id },
     )
     .await;
@@ -169,7 +162,7 @@ async fn test_should_not_close_not_owned_rate_account() {
     let mint_from_keypair = Keypair::new();
     let mint_creator1 = context.payer.pubkey();
     let decimals = 6u8;
-    let (mint_authority_pda1, _, _) =
+    let (mint_authority_pda1, _) =
         create_minimal_security_token_mint(&mut context, &mint_from_keypair, None, decimals).await;
 
     let action_id = 42u64;
@@ -215,7 +208,7 @@ async fn test_should_not_close_not_owned_rate_account() {
     let mint_creator2 = payer2.pubkey();
 
     let decimals = 6u8;
-    let (mint_authority_pda2, _, _) =
+    let (mint_authority_pda2, _) =
         create_minimal_security_token_mint(&mut context, &mint_to_keypair, Some(&payer2), decimals)
             .await;
 
@@ -250,6 +243,7 @@ async fn test_should_not_close_not_owned_rate_account() {
         context.payer.pubkey(),
         mint_to_pubkey,
         mint_to_pubkey,
+        None,
         CloseRateArgs { action_id },
     )
     .await;
@@ -262,6 +256,7 @@ async fn test_should_not_close_not_owned_rate_account() {
         context.payer.pubkey(),
         mint_to_pubkey,
         mint_to_pubkey,
+        None,
         CloseRateArgs { action_id },
     )
     .await;
@@ -276,6 +271,7 @@ async fn test_should_not_close_not_owned_rate_account() {
         context.payer.pubkey(),
         mint_from_pubkey,
         mint_from_pubkey,
+        None,
         CloseRateArgs { action_id },
     )
     .await;
@@ -290,6 +286,7 @@ async fn test_should_not_close_not_owned_rate_account() {
         context.payer.pubkey(),
         mint_from_pubkey,
         mint_from_pubkey,
+        None,
         CloseRateArgs { action_id: 999u64 },
     )
     .await;

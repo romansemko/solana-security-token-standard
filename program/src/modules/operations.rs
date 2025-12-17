@@ -5,22 +5,29 @@
 
 use crate::constants::seeds;
 use crate::debug_log;
-use crate::instructions::TransferCheckedWithHook;
-use crate::modules::{
-    burn_checked, mint_to_checked, verify_account_initialized, verify_account_not_initialized,
-    verify_mint_keys_match, verify_owner, verify_pda_keys_match, verify_signer,
-    verify_system_program, verify_token22_program, verify_transfer_hook_program, verify_writable,
+use crate::merkle_tree_utils::{
+    create_merkle_tree_leaf_node, verify_merkle_proof, MerkleTreeRoot, ProofData, ProofNode,
 };
-use crate::state::{MintAuthority, ProgramAccount, Rate, Receipt, Rounding};
+use crate::modules::{
+    burn_checked, mint_to_checked, transfer_checked, verify_account_initialized,
+    verify_account_not_initialized, verify_associated_token_program, verify_mint_keys_match,
+    verify_owner, verify_pda_keys_match, verify_signer, verify_system_program,
+    verify_token22_program, verify_transfer_hook_program, verify_writable,
+};
+use crate::state::{
+    DistributionEscrowAuthority, MintAuthority, ProgramAccount, Proof, Rate, Receipt, Rounding,
+};
 use crate::token22_extensions::pausable::{Pause, Resume};
 use crate::utils::{
+    find_associated_token_address, find_distribution_escrow_authority_pda,
     find_freeze_authority_pda, find_pause_authority_pda, find_permanent_delegate_pda,
-    find_rate_pda, find_receipt_pda,
+    find_proof_pda, find_rate_pda,
 };
 use core::cmp::Ordering;
 use pinocchio::instruction::{Seed, Signer};
 use pinocchio::program_error::ProgramError;
 use pinocchio::{account_info::AccountInfo, pubkey::Pubkey, ProgramResult};
+use pinocchio_associated_token_account::instructions::Create as CreateTokenAccount;
 use pinocchio_token_2022::instructions::{FreezeAccount, ThawAccount};
 use pinocchio_token_2022::state::{Mint, TokenAccount};
 
@@ -285,7 +292,7 @@ impl OperationsModule {
         verify_writable(from_token_account)?;
         verify_writable(to_token_account)?;
 
-        let (permanent_delegate_pda, bump) =
+        let (permanent_delegate_pda, permanent_delegate_bump) =
             crate::utils::find_permanent_delegate_pda(mint_info.key(), program_id);
         verify_pda_keys_match(permanent_delegate_authority.key(), &permanent_delegate_pda)?;
 
@@ -293,48 +300,16 @@ impl OperationsModule {
         let decimals = mint_account.decimals();
         drop(mint_account);
 
-        let transfer_instruction = TransferCheckedWithHook {
-            mint: mint_info,
-            from: from_token_account,
-            to: to_token_account,
-            authority: permanent_delegate_authority,
+        transfer_checked(
             amount,
             decimals,
+            mint_info,
+            from_token_account,
+            to_token_account,
             transfer_hook_program,
-        };
-
-        let bump_seed = [bump];
-        let seeds = [
-            Seed::from(seeds::PERMANENT_DELEGATE),
-            Seed::from(mint_info.key().as_ref()),
-            Seed::from(bump_seed.as_ref()),
-        ];
-        let permanent_delegate_signer = Signer::from(&seeds);
-        transfer_instruction.invoke_signed(&[permanent_delegate_signer])?;
-        Ok(())
-    }
-
-    /// Claim distribution (dividends/coupons)
-    pub fn execute_claim_distribution(
-        _accounts: &[AccountInfo],
-        _amount: u64,
-        _action_id: u64,
-        _merkle_root: &[u8],
-        _merkle_proof: &[Vec<u8>],
-    ) -> ProgramResult {
-        // TODO: Verify merkle proof
-        // TODO: Create Receipt account
-        // TODO: If escrow provided, transfer distribution
-        Ok(())
-    }
-
-    /// Create escrow for distributions
-    pub fn execute_create_distribution_escrow(
-        _accounts: &[AccountInfo],
-        _action_id: u64,
-        _merkle_proof: &[u8],
-    ) -> ProgramResult {
-        // TODO: Create escrow token account with PDA authority
+            permanent_delegate_authority,
+            permanent_delegate_bump,
+        )?;
         Ok(())
     }
 
@@ -495,7 +470,7 @@ impl OperationsModule {
         verify_pda_keys_match(permanent_delegate.key(), &permanent_delegate_pda)?;
 
         let (expected_receipt_pda, receipt_bump) =
-            find_receipt_pda(mint_split_key, action_id, program_id);
+            Receipt::find_common_action_pda(mint_split_key, action_id);
         verify_pda_keys_match(receipt_account.key(), &expected_receipt_pda)?;
 
         // Verify Rate account with optimized derive_pda
@@ -558,14 +533,13 @@ impl OperationsModule {
                 )?;
             }
         }
+
         // Create Receipt PDA account for Split operation
-        Receipt::issue(
-            receipt_account,
-            payer,
-            *mint_split_key,
-            action_id,
-            receipt_bump,
-        )?;
+        let action_id_seed = action_id.to_le_bytes();
+        let bump_seed = [receipt_bump];
+        let seeds = Receipt::common_action_seeds(mint_split_key, &action_id_seed, &bump_seed);
+        Receipt::issue(receipt_account, payer, &seeds)?;
+
         Ok(())
     }
 
@@ -610,7 +584,7 @@ impl OperationsModule {
         verify_pda_keys_match(permanent_delegate.key(), &permanent_delegate_pda)?;
 
         let (expected_receipt_pda, receipt_bump) =
-            find_receipt_pda(verified_mint_key, action_id, program_id);
+            Receipt::find_common_action_pda(verified_mint_key, action_id);
         verify_pda_keys_match(receipt_account.key(), &expected_receipt_pda)?;
 
         // Verify Rate account with optimized derive_pda
@@ -679,14 +653,349 @@ impl OperationsModule {
         )?;
 
         // Create Receipt PDA account for Convert operation
-        Receipt::issue(
-            receipt_account,
-            payer,
-            *verified_mint_key,
-            action_id,
-            receipt_bump,
+        let action_id_seed = action_id.to_le_bytes();
+        let bump_seed = [receipt_bump];
+        let seeds = Receipt::common_action_seeds(verified_mint_key, &action_id_seed, &bump_seed);
+        Receipt::issue(receipt_account, payer, &seeds)?;
+
+        Ok(())
+    }
+
+    /// Execute proof account creation
+    pub fn execute_create_proof_account(
+        program_id: &Pubkey,
+        verified_mint_info: &AccountInfo,
+        accounts: &[AccountInfo],
+        action_id: u64,
+        proof_data: ProofData,
+    ) -> ProgramResult {
+        let [payer, mint_account, proof_account, token_account, system_program_info] = accounts
+        else {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        };
+
+        verify_mint_keys_match(verified_mint_info, &mint_account)?;
+
+        verify_system_program(system_program_info)?;
+        verify_writable(payer)?;
+        verify_writable(proof_account)?;
+        verify_signer(payer)?;
+        verify_account_not_initialized(proof_account)?;
+
+        let token = TokenAccount::from_account_info(token_account)?;
+        // Verify token account belongs to the mint
+        let token_account_key = token_account.key();
+        if token.mint().ne(mint_account.key()) {
+            return Err(ProgramError::InvalidInstructionData);
+        }
+
+        let (expected_proof_pda, bump) = find_proof_pda(token_account_key, action_id, program_id);
+        verify_pda_keys_match(proof_account.key(), &expected_proof_pda)?;
+
+        // Create Proof account
+        let proof = Proof::new(&proof_data, bump)?;
+        let action_id_seed = &action_id.to_le_bytes();
+        let bump_seed = &proof.bump_seed();
+        let seeds = proof.seeds(token_account_key, action_id_seed, bump_seed);
+        proof.init(payer, proof_account, &seeds)?;
+        proof.write_data(proof_account)?;
+
+        Ok(())
+    }
+
+    /// Execute proof account update
+    pub fn execute_update_proof_account(
+        _program_id: &Pubkey,
+        verified_mint_info: &AccountInfo,
+        accounts: &[AccountInfo],
+        action_id: u64,
+        proof_node: ProofNode,
+        offset: u32,
+    ) -> ProgramResult {
+        let [payer, mint_account, proof_account, token_account, system_program_info] = accounts
+        else {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        };
+
+        verify_mint_keys_match(verified_mint_info, &mint_account)?;
+
+        verify_system_program(system_program_info)?;
+        verify_signer(payer)?;
+        verify_writable(payer)?;
+        verify_writable(proof_account)?;
+        verify_account_initialized(proof_account)?;
+
+        let token = TokenAccount::from_account_info(token_account)?;
+        // Verify token account belongs to the mint
+        let token_account_key = token_account.key();
+        if token.mint().ne(mint_account.key()) {
+            return Err(ProgramError::InvalidInstructionData);
+        }
+
+        let mut proof = Proof::from_account_info(proof_account)?;
+        let expected_proof_pda = proof.derive_pda(token_account_key, action_id)?;
+        verify_pda_keys_match(proof_account.key(), &expected_proof_pda)?;
+
+        // Update Proof account
+        let current_proof_account_len = proof_account.data_len();
+        proof.update_data_at_offset(proof_node, offset as usize)?;
+        let new_proof_account_len = proof.serialized_len();
+        // Update account size and pay rent difference
+        if new_proof_account_len != current_proof_account_len {
+            Proof::resize_account_and_rent(proof_account, new_proof_account_len, payer)?;
+        }
+        proof.write_data(proof_account)?;
+
+        Ok(())
+    }
+
+    /// Create escrow for distributions
+    pub fn execute_create_distribution_escrow(
+        _program_id: &Pubkey,
+        verified_mint_info: &AccountInfo,
+        accounts: &[AccountInfo],
+        action_id: u64,
+        merkle_root: &MerkleTreeRoot,
+    ) -> ProgramResult {
+        let [distribution_escrow_authority, payer, distribution_token_account, distribution_mint, token_program, associated_token_account_program, system_program] =
+            accounts
+        else {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        };
+
+        // Verify mint is valid
+        verify_mint_keys_match(verified_mint_info, &distribution_mint)?;
+        // Verify programs
+        verify_token22_program(token_program)?;
+        verify_associated_token_program(associated_token_account_program)?;
+        verify_system_program(system_program)?;
+
+        verify_writable(distribution_token_account)?;
+        verify_writable(payer)?;
+        verify_signer(payer)?;
+
+        verify_account_not_initialized(distribution_token_account)?;
+
+        let mint_pubkey = distribution_mint.key();
+        let (distribution_escrow_authority_pda, _) =
+            DistributionEscrowAuthority::find_pda(mint_pubkey, action_id, merkle_root);
+        verify_pda_keys_match(
+            distribution_escrow_authority.key(),
+            &distribution_escrow_authority_pda,
         )?;
 
+        let (expected_ata, _) = find_associated_token_address(
+            &distribution_escrow_authority_pda,
+            mint_pubkey,
+            token_program.key(),
+        );
+        verify_pda_keys_match(distribution_token_account.key(), &expected_ata)?;
+
+        CreateTokenAccount {
+            funding_account: payer,
+            account: distribution_token_account,
+            wallet: distribution_escrow_authority,
+            mint: distribution_mint,
+            system_program,
+            token_program,
+        }
+        .invoke()?;
+
+        Ok(())
+    }
+
+    /// Claim distribution (dividends/coupons)
+    #[allow(clippy::too_many_arguments)]
+    pub fn execute_claim_distribution(
+        program_id: &Pubkey,
+        verified_mint_info: &AccountInfo,
+        accounts: &[AccountInfo],
+        amount: u64,
+        action_id: u64,
+        merkle_root: &MerkleTreeRoot,
+        leaf_index: u32,
+        merkle_proof: Option<ProofData>,
+    ) -> ProgramResult {
+        let [permanent_delegate_authority, payer, mint_account, eligible_token_account, escrow_token_account, receipt_account, proof_account, transfer_hook_program, token_program, system_program] =
+            accounts
+        else {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        };
+
+        // Verify mint
+        verify_mint_keys_match(verified_mint_info, &mint_account)?;
+
+        // Verify programs
+        verify_transfer_hook_program(transfer_hook_program)?;
+        verify_token22_program(token_program)?;
+        verify_system_program(system_program)?;
+
+        verify_signer(payer)?;
+        verify_writable(payer)?;
+        verify_writable(receipt_account)?;
+
+        // With external settlement the escrow_token_account is not provided
+        let is_external_settlement = escrow_token_account.key().eq(program_id);
+        verify_writable(eligible_token_account)?;
+        // escrow_token_account only needs writable check if it's not external settlement
+        if !is_external_settlement {
+            verify_writable(escrow_token_account)?;
+        }
+
+        verify_account_not_initialized(receipt_account)?;
+        // Retrieve proof data either from argument or from account and verify proof account
+        let proof = Proof::get_proof_data_from_instruction(
+            eligible_token_account.key(),
+            action_id,
+            proof_account,
+            merkle_proof,
+        )?;
+        let mint_pubkey = mint_account.key();
+        let (expected_receipt_pda, receipt_bump) = Receipt::find_claim_action_pda(
+            mint_pubkey,
+            eligible_token_account.key(),
+            action_id,
+            &proof,
+        );
+        verify_pda_keys_match(receipt_account.key(), &expected_receipt_pda)?;
+
+        // Verify claimer node belongs to merkle tree
+        let node = create_merkle_tree_leaf_node(
+            eligible_token_account.key(),
+            mint_pubkey,
+            action_id,
+            amount,
+        );
+        if !verify_merkle_proof(&node, merkle_root, &proof, leaf_index) {
+            return Err(ProgramError::InvalidInstructionData);
+        }
+
+        // With internal settlement tokens are transferred and Receipt is issued
+        if !is_external_settlement {
+            let (distribution_escrow_authority, _bump) = find_distribution_escrow_authority_pda(
+                mint_pubkey,
+                action_id,
+                merkle_root,
+                program_id,
+            );
+            let (expected_escrow_ata, _ata_bump) = find_associated_token_address(
+                &distribution_escrow_authority,
+                mint_pubkey,
+                &pinocchio_token_2022::ID,
+            );
+            verify_pda_keys_match(escrow_token_account.key(), &expected_escrow_ata)?;
+
+            let (permanent_delegate_pda, permanent_delegate_bump) =
+                find_permanent_delegate_pda(mint_pubkey, program_id);
+            verify_pda_keys_match(permanent_delegate_authority.key(), &permanent_delegate_pda)?;
+
+            let mint = Mint::from_account_info(mint_account)?;
+            let escrow_token = TokenAccount::from_account_info(escrow_token_account)?;
+            let eligible_token = TokenAccount::from_account_info(eligible_token_account)?;
+            let decimals = mint.decimals();
+
+            if escrow_token.mint() != mint_pubkey || eligible_token.mint() != mint_pubkey {
+                return Err(ProgramError::InvalidAccountData);
+            }
+            if escrow_token.amount() < amount {
+                return Err(ProgramError::InsufficientFunds);
+            }
+            drop(mint);
+            drop(escrow_token);
+            drop(eligible_token);
+
+            // Transfer tokens from distribution escrow to eligible token account
+            transfer_checked(
+                amount,
+                decimals,
+                mint_account,
+                escrow_token_account,
+                eligible_token_account,
+                transfer_hook_program,
+                permanent_delegate_authority,
+                permanent_delegate_bump,
+            )?;
+        }
+
+        // Issue Receipt
+        let action_id_seed = action_id.to_le_bytes();
+        let bump_seed = [receipt_bump];
+        let proof_seed = Receipt::proof_seed(&proof);
+        let receipt_seeds = Receipt::claim_action_seeds(
+            mint_pubkey,
+            eligible_token_account.key(),
+            &action_id_seed,
+            &proof_seed,
+            &bump_seed,
+        );
+        Receipt::issue(receipt_account, payer, &receipt_seeds)?;
+        Ok(())
+    }
+
+    /// Close Receipt account of operation tied to the action_id (e.g. split, convert)
+    pub fn execute_close_action_receipt_account(
+        _program_id: &Pubkey,
+        verified_mint_info: &AccountInfo,
+        accounts: &[AccountInfo],
+        action_id: u64,
+    ) -> ProgramResult {
+        let [receipt_account, destination_account, mint_account] = accounts else {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        };
+
+        verify_mint_keys_match(verified_mint_info, &mint_account)?;
+        verify_writable(destination_account)?;
+        verify_writable(receipt_account)?;
+
+        // Validate Receipt
+        verify_account_initialized(receipt_account)?;
+        // Deserialize to ensure it's valid Receipt account (checks discriminator and ownership)
+        Receipt::from_account_info(receipt_account)?;
+        let (expected_receipt_pda, _bump) =
+            Receipt::find_common_action_pda(mint_account.key(), action_id);
+        verify_pda_keys_match(receipt_account.key(), &expected_receipt_pda)?;
+
+        Receipt::close(receipt_account, destination_account)?;
+        Ok(())
+    }
+
+    /// Close Receipt account of claim_distribution action
+    pub fn execute_close_claim_receipt_account(
+        _program_id: &Pubkey,
+        verified_mint_info: &AccountInfo,
+        accounts: &[AccountInfo],
+        action_id: u64,
+        merkle_proof: Option<ProofData>,
+    ) -> ProgramResult {
+        let [receipt_account, destination_account, mint_account, eligible_token_account, proof_account] =
+            accounts
+        else {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        };
+
+        verify_mint_keys_match(verified_mint_info, &mint_account)?;
+        verify_writable(destination_account)?;
+        verify_writable(receipt_account)?;
+        verify_account_initialized(receipt_account)?;
+        // Deserialize to ensure it's valid Receipt account (checks discriminator and ownership)
+        Receipt::from_account_info(receipt_account)?;
+
+        // Retrieve proof data either from argument or from account. Verify proof account
+        let proof = Proof::get_proof_data_from_instruction(
+            eligible_token_account.key(),
+            action_id,
+            proof_account,
+            merkle_proof,
+        )?;
+        let (expected_receipt_pda, _bump) = Receipt::find_claim_action_pda(
+            mint_account.key(),
+            eligible_token_account.key(),
+            action_id,
+            &proof,
+        );
+        verify_pda_keys_match(receipt_account.key(), &expected_receipt_pda)?;
+
+        Receipt::close(receipt_account, destination_account)?;
         Ok(())
     }
 }

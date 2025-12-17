@@ -10,10 +10,12 @@ use pinocchio::{
     pubkey::{find_program_address, Pubkey},
 };
 use pinocchio_token_2022::state::Mint;
+use solana_keccak_hasher::hashv;
 
 use crate::{
     constants::{seeds, ACTION_ID_LEN, TRANSFER_HOOK_PROGRAM_ID},
     instructions::TokenMetadataArgs,
+    merkle_tree_utils::{MerkleTreeRoot, ProofData},
 };
 
 pub fn find_extra_account_metas_pda(mint: &Pubkey) -> (Pubkey, u8) {
@@ -100,14 +102,87 @@ pub fn find_rate_pda(
         program_id,
     )
 }
-/// Derive receipt PDA
+
+/// Derive receipt PDA for common operation connected to action id and mint (e.g. Split, Convert)
 /// Seeds: ["receipt", mint, action_id]
-pub fn find_receipt_pda(mint: &Pubkey, action_id: u64, program_id: &Pubkey) -> (Pubkey, u8) {
+pub fn find_common_action_receipt_pda(
+    mint: &Pubkey,
+    action_id: u64,
+    program_id: &Pubkey,
+) -> (Pubkey, u8) {
     find_program_address(
         &[
             seeds::RECEIPT_ACCOUNT,
             mint.as_ref(),
             action_id.to_le_bytes().as_ref(),
+        ],
+        program_id,
+    )
+}
+
+/// Derive receipt PDA for Claim operation
+/// Seeds: ["receipt", mint, token_account, action_id, proof]
+pub fn find_claim_receipt_pda(
+    mint: &Pubkey,
+    token_account: &Pubkey,
+    action_id: u64,
+    proof: &ProofData,
+    program_id: &Pubkey,
+) -> (Pubkey, u8) {
+    let proof_hash = hash_from_proof_data(proof);
+
+    find_program_address(
+        &[
+            seeds::RECEIPT_ACCOUNT,
+            mint.as_ref(),
+            token_account.as_ref(),
+            action_id.to_le_bytes().as_ref(),
+            proof_hash.as_ref(),
+        ],
+        program_id,
+    )
+}
+
+/// Helper to compute proof hash to be used in claim_action Receipt seeds
+pub fn hash_from_proof_data(proof: &ProofData) -> [u8; 32] {
+    let proof_data = proof
+        .iter()
+        .flat_map(|proof_node| *proof_node)
+        .collect::<Vec<u8>>();
+    hashv(&[&proof_data]).to_bytes()
+}
+
+/// Derive proof PDA
+/// Seeds: ["proof", token_account_address, action_id]
+pub fn find_proof_pda(
+    token_account_address: &Pubkey,
+    action_id: u64,
+    program_id: &Pubkey,
+) -> (Pubkey, u8) {
+    find_program_address(
+        &[
+            seeds::PROOF_ACCOUNT,
+            token_account_address.as_ref(),
+            action_id.to_le_bytes().as_ref(),
+        ],
+        program_id,
+    )
+}
+
+/// Derive distribution escrow authority PDA
+/// Seeds: ["distribution_escrow_authority", mint, action_id, merkle_root]
+pub fn find_distribution_escrow_authority_pda(
+    mint: &Pubkey,
+    action_id: u64,
+    merkle_root: &MerkleTreeRoot,
+    program_id: &Pubkey,
+) -> (Pubkey, u8) {
+    find_program_address(
+        &[
+            seeds::DISTRIBUTION_ESCROW_AUTHORITY,
+            mint.as_ref(),
+            action_id.to_le_bytes().as_ref(),
+            merkle_root.as_ref(),
         ],
         program_id,
     )
@@ -242,4 +317,17 @@ pub fn parse_action_id_bytes(data: &[u8]) -> Option<u64> {
     data.get(..ACTION_ID_LEN)
         .and_then(|slice| slice.try_into().ok())
         .map(u64::from_le_bytes)
+}
+
+/// Find Associated Token Account address
+/// Derives the ATA address using the standard Associated Token Account seeds
+pub fn find_associated_token_address(
+    wallet: &Pubkey,
+    token_mint: &Pubkey,
+    token_program: &Pubkey,
+) -> (Pubkey, u8) {
+    find_program_address(
+        &[wallet.as_ref(), token_program.as_ref(), token_mint.as_ref()],
+        &pinocchio_associated_token_account::ID,
+    )
 }

@@ -131,11 +131,7 @@ pub async fn assert_account_exists(
     account_pubkey: Pubkey,
     should_check_existence: bool,
 ) -> Option<Account> {
-    let account_info = context
-        .banks_client
-        .get_account(account_pubkey)
-        .await
-        .unwrap();
+    let account_info = get_account(context, account_pubkey).await;
 
     if should_check_existence {
         assert!(
@@ -153,6 +149,17 @@ pub async fn assert_account_exists(
 
     println!("Test passed: Account {} exists", account_pubkey);
     account_info
+}
+
+pub async fn get_account(
+    context: &mut ProgramTestContext,
+    account_pubkey: Pubkey,
+) -> Option<Account> {
+    context
+        .banks_client
+        .get_account(account_pubkey)
+        .await
+        .unwrap()
 }
 
 pub async fn initialize_mint(
@@ -458,13 +465,6 @@ pub fn find_permanent_delegate_pda(mint: &Pubkey) -> (Pubkey, u8) {
     )
 }
 
-pub fn find_receipt_pda(mint: &Pubkey, action_id: u64) -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[b"receipt", &mint.as_ref(), &action_id.to_le_bytes()],
-        &SECURITY_TOKEN_PROGRAM_ID,
-    )
-}
-
 pub fn find_transfer_hook_pda(mint: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &[b"mint.transfer_hook", &mint.as_ref()],
@@ -508,10 +508,7 @@ pub async fn create_minimal_security_token_mint(
     mint_keypair: &solana_sdk::signature::Keypair,
     mint_creator: Option<&Keypair>,
     decimals: u8,
-) -> (Pubkey, Pubkey, Pubkey) {
-    let spl_token_2022_program =
-        Pubkey::from_str_const("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
-
+) -> (Pubkey, Pubkey) {
     let payer = mint_creator.unwrap_or(&context.payer).insecure_clone();
     let mint_authority = payer.pubkey();
 
@@ -540,11 +537,7 @@ pub async fn create_minimal_security_token_mint(
     )
     .await;
 
-    (
-        mint_authority_pda,
-        freeze_authority_pda,
-        spl_token_2022_program,
-    )
+    (mint_authority_pda, freeze_authority_pda)
 }
 
 /// Mint tokens to destination token account
@@ -639,4 +632,12 @@ pub async fn get_token_account_state(
 
     StateWithExtensionsOwned::<TokenAccount>::unpack(account.data)
         .expect("token account state should deserialize")
+}
+
+/// Fetch balance of an account
+pub async fn get_balance(banks_client: &BanksClient, pubkey: Pubkey) -> u64 {
+    banks_client
+        .get_balance(pubkey)
+        .await
+        .expect("Should fetch balance")
 }

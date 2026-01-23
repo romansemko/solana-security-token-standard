@@ -1,17 +1,19 @@
 //! Security Token Standard Integration Tests
 
 use crate::helpers::{
-    assert_instruction_error, assert_security_token_error, assert_transaction_success,
+    add_dummy_verification_program, assert_instruction_error, assert_security_token_error,
+    assert_transaction_success, create_dummy_verification_from_instruction, create_spl_account,
     find_mint_authority_pda, find_mint_freeze_authority_pda, find_permanent_delegate_pda,
-    find_transfer_hook_pda, find_verification_config_pda, initialize_mint,
-    initialize_verification_config, send_tx, start_with_context,
+    find_transfer_hook_pda, find_verification_config_pda, get_default_verification_programs,
+    initialize_mint, initialize_verification_config, send_tx, start_with_context,
 };
 use borsh::BorshDeserialize;
 use security_token_client::accounts::{MintAuthority, VerificationConfig};
 use security_token_client::errors::SecurityTokenProgramError;
 use security_token_client::instructions::{
-    InitializeMintBuilder, TrimVerificationConfigBuilder, UpdateMetadataBuilder,
-    UpdateVerificationConfigBuilder, UPDATE_METADATA_DISCRIMINATOR,
+    InitializeMintBuilder, InitializeVerificationConfigBuilder, TrimVerificationConfigBuilder,
+    UpdateMetadataBuilder, UpdateVerificationConfigBuilder, MINT_DISCRIMINATOR,
+    TRANSFER_DISCRIMINATOR, UPDATE_METADATA_DISCRIMINATOR,
 };
 use security_token_client::programs::SECURITY_TOKEN_PROGRAM_ID;
 use security_token_client::types::{
@@ -19,6 +21,7 @@ use security_token_client::types::{
     ScaledUiAmountConfigArgs, TokenMetadataArgs, TrimVerificationConfigArgs, UpdateMetadataArgs,
     UpdateVerificationConfigArgs,
 };
+use security_token_transfer_hook;
 use solana_program_test::ProgramTest;
 use solana_sdk::sysvar;
 use solana_sdk::{pubkey::Pubkey, signature::Signer};
@@ -347,7 +350,9 @@ async fn test_initialize_mint_with_all_extensions() {
 #[tokio::test]
 async fn test_update_metadata() {
     let mut pt = ProgramTest::new("security_token_program", SECURITY_TOKEN_PROGRAM_ID, None);
-    pt.prefer_bpf(true);
+    pt.prefer_bpf(false);
+
+    add_dummy_verification_program(&mut pt);
 
     // Create mint keypair - mint account must be a signer when creating new account
     let mint_keypair = solana_sdk::signature::Keypair::new();
@@ -397,7 +402,7 @@ async fn test_update_metadata() {
     let verification_config_args = InitializeVerificationConfigArgs {
         instruction_discriminator: UPDATE_METADATA_DISCRIMINATOR,
         cpi_mode: false,
-        program_addresses: vec![],
+        program_addresses: get_default_verification_programs(),
     };
 
     initialize_verification_config(
@@ -446,10 +451,12 @@ async fn test_update_metadata() {
         .update_metadata_args(update_metadata_args)
         .instruction();
 
+    let dummy_update_metadata_ix = create_dummy_verification_from_instruction(&update_metadata_ix);
+
     // Process transaction
     let result = send_tx(
         &context.banks_client,
-        vec![update_metadata_ix],
+        vec![dummy_update_metadata_ix, update_metadata_ix],
         &context.payer.pubkey(),
         vec![&context.payer],
     )
@@ -1168,4 +1175,364 @@ async fn test_metadata_pointer_validation() {
         result,
         SecurityTokenProgramError::CannotModifyExternalMetadataAccount,
     );
+}
+
+#[tokio::test]
+async fn test_initialize_verification_config_rejects_empty_vector() {
+    let mut pt = ProgramTest::new("security_token_program", SECURITY_TOKEN_PROGRAM_ID, None);
+    pt.prefer_bpf(true);
+
+    let mint_keypair = solana_sdk::signature::Keypair::new();
+    let mut context: solana_program_test::ProgramTestContext = pt.start_with_context().await;
+    let (mint_authority_pda, _bump) =
+        find_mint_authority_pda(&mint_keypair.pubkey(), &context.payer.pubkey());
+
+    let (freeze_authority_pda, _bump) = find_mint_freeze_authority_pda(&mint_keypair.pubkey());
+
+    let mint_args = InitializeMintArgs {
+        ix_mint: MintArgs {
+            decimals: 6,
+            mint_authority: context.payer.pubkey(),
+            freeze_authority: freeze_authority_pda,
+        },
+        ix_metadata_pointer: None,
+        ix_metadata: None,
+        ix_scaled_ui_amount: None,
+    };
+
+    initialize_mint(&mint_keypair, &mut context, mint_authority_pda, &mint_args).await;
+
+    let (verification_config_pda, _bump) =
+        find_verification_config_pda(mint_keypair.pubkey(), MINT_DISCRIMINATOR);
+
+    // Attempt to initialize with empty vector - should fail
+    let verification_config_args = InitializeVerificationConfigArgs {
+        instruction_discriminator: MINT_DISCRIMINATOR,
+        cpi_mode: false,
+        program_addresses: vec![], // Empty vector - should be rejected
+    };
+
+    let ix = InitializeVerificationConfigBuilder::new()
+        .mint(mint_keypair.pubkey())
+        .verification_config_or_mint_authority(mint_authority_pda)
+        .instructions_sysvar_or_creator(context.payer.pubkey())
+        .mint_account(mint_keypair.pubkey())
+        .payer(context.payer.pubkey())
+        .config_account(verification_config_pda)
+        .initialize_verification_config_args(verification_config_args)
+        .instruction();
+
+    let result = send_tx(
+        &context.banks_client,
+        vec![ix],
+        &context.payer.pubkey(),
+        vec![&context.payer],
+    )
+    .await;
+
+    // Should fail with InvalidArgument error
+    assert_instruction_error(result, "InvalidArgument");
+}
+
+#[tokio::test]
+async fn test_update_verification_config_rejects_resulting_empty_vector() {
+    let mut pt = ProgramTest::new("security_token_program", SECURITY_TOKEN_PROGRAM_ID, None);
+    pt.prefer_bpf(true);
+
+    let mint_keypair = solana_sdk::signature::Keypair::new();
+    let mut context: solana_program_test::ProgramTestContext = pt.start_with_context().await;
+    let (mint_authority_pda, _bump) =
+        find_mint_authority_pda(&mint_keypair.pubkey(), &context.payer.pubkey());
+
+    let (freeze_authority_pda, _bump) = find_mint_freeze_authority_pda(&mint_keypair.pubkey());
+
+    let mint_args = InitializeMintArgs {
+        ix_mint: MintArgs {
+            decimals: 6,
+            mint_authority: context.payer.pubkey(),
+            freeze_authority: freeze_authority_pda,
+        },
+        ix_metadata_pointer: None,
+        ix_metadata: None,
+        ix_scaled_ui_amount: None,
+    };
+
+    initialize_mint(&mint_keypair, &mut context, mint_authority_pda, &mint_args).await;
+
+    let (verification_config_pda, _bump) =
+        find_verification_config_pda(mint_keypair.pubkey(), UPDATE_METADATA_DISCRIMINATOR);
+
+    // First, create a valid config with one program
+    let program_1 = Pubkey::new_unique();
+    let verification_programs = vec![program_1];
+
+    let initialize_verification_config_args = InitializeVerificationConfigArgs {
+        instruction_discriminator: UPDATE_METADATA_DISCRIMINATOR,
+        cpi_mode: false,
+        program_addresses: verification_programs.clone(),
+    };
+
+    initialize_verification_config(
+        &mint_keypair,
+        &mut context,
+        mint_authority_pda,
+        verification_config_pda,
+        &initialize_verification_config_args,
+    )
+    .await;
+
+    // Now try to trim to size 0 without closing - should fail
+    let trim_verification_config_args = TrimVerificationConfigArgs {
+        instruction_discriminator: UPDATE_METADATA_DISCRIMINATOR,
+        size: 0,
+        close: false, // Not closing, just trimming to 0 - should be rejected
+    };
+
+    let trim_config_ix = TrimVerificationConfigBuilder::new()
+        .mint(mint_keypair.pubkey())
+        .verification_config_or_mint_authority(mint_authority_pda)
+        .instructions_sysvar_or_creator(context.payer.pubkey())
+        .config_account(verification_config_pda)
+        .mint_account(mint_keypair.pubkey())
+        .recipient(context.payer.pubkey())
+        .trim_verification_config_args(trim_verification_config_args)
+        .instruction();
+
+    let result = send_tx(
+        &context.banks_client,
+        vec![trim_config_ix],
+        &context.payer.pubkey(),
+        vec![&context.payer],
+    )
+    .await;
+
+    // Should fail because trimming to 0 without closing would result in empty vector
+    // The error is InvalidAccountData because it's validated by VerificationConfig::validate()
+    assert_instruction_error(result, "InvalidAccountData");
+}
+
+#[tokio::test]
+async fn test_mint_fails_with_empty_verification_config() {
+    let mut pt = ProgramTest::new("security_token_program", SECURITY_TOKEN_PROGRAM_ID, None);
+    pt.prefer_bpf(true);
+
+    let mint_keypair = solana_sdk::signature::Keypair::new();
+    let mut context: solana_program_test::ProgramTestContext = pt.start_with_context().await;
+
+    let (mint_authority_pda, _bump) =
+        find_mint_authority_pda(&mint_keypair.pubkey(), &context.payer.pubkey());
+
+    let (freeze_authority_pda, _bump) = find_mint_freeze_authority_pda(&mint_keypair.pubkey());
+
+    let initialize_mint_args = InitializeMintArgs {
+        ix_mint: MintArgs {
+            decimals: 6,
+            mint_authority: context.payer.pubkey(),
+            freeze_authority: freeze_authority_pda,
+        },
+        ix_metadata_pointer: None,
+        ix_metadata: None,
+        ix_scaled_ui_amount: None,
+    };
+
+    initialize_mint(
+        &mint_keypair,
+        &mut context,
+        mint_authority_pda,
+        &initialize_mint_args,
+    )
+    .await;
+
+    // Try to initialize with empty vector - this should fail at initialization
+    let (verification_config_pda, _bump) =
+        find_verification_config_pda(mint_keypair.pubkey(), MINT_DISCRIMINATOR);
+    let initialize_verification_config_args = InitializeVerificationConfigArgs {
+        instruction_discriminator: MINT_DISCRIMINATOR,
+        cpi_mode: false,
+        program_addresses: vec![], // Empty vector
+    };
+
+    let init_ix = InitializeVerificationConfigBuilder::new()
+        .mint(mint_keypair.pubkey())
+        .verification_config_or_mint_authority(mint_authority_pda)
+        .instructions_sysvar_or_creator(context.payer.pubkey())
+        .mint_account(mint_keypair.pubkey())
+        .payer(context.payer.pubkey())
+        .config_account(verification_config_pda)
+        .initialize_verification_config_args(initialize_verification_config_args)
+        .instruction();
+
+    let result = send_tx(
+        &context.banks_client,
+        vec![init_ix],
+        &context.payer.pubkey(),
+        vec![&context.payer],
+    )
+    .await;
+
+    // Should fail at initialization
+    assert_instruction_error(result, "InvalidArgument");
+}
+
+#[tokio::test]
+async fn test_transfer_fails_with_empty_verification_config() {
+    let mut pt = ProgramTest::new("security_token_program", SECURITY_TOKEN_PROGRAM_ID, None);
+    pt.add_program(
+        "security_token_transfer_hook",
+        Pubkey::from(security_token_transfer_hook::id()),
+        None,
+    );
+    pt.prefer_bpf(false);
+    add_dummy_verification_program(&mut pt);
+
+    let mut context: solana_program_test::ProgramTestContext = pt.start_with_context().await;
+
+    let mint_keypair = solana_sdk::signature::Keypair::new();
+    let source_keypair = solana_sdk::signature::Keypair::new();
+
+    let (mint_authority_pda, _bump) =
+        find_mint_authority_pda(&mint_keypair.pubkey(), &context.payer.pubkey());
+
+    let (freeze_authority_pda, _bump) = find_mint_freeze_authority_pda(&mint_keypair.pubkey());
+
+    let initialize_mint_args = InitializeMintArgs {
+        ix_mint: MintArgs {
+            decimals: 6,
+            mint_authority: context.payer.pubkey(),
+            freeze_authority: freeze_authority_pda,
+        },
+        ix_metadata_pointer: None,
+        ix_metadata: None,
+        ix_scaled_ui_amount: None,
+    };
+
+    initialize_mint(
+        &mint_keypair,
+        &mut context,
+        mint_authority_pda,
+        &initialize_mint_args,
+    )
+    .await;
+
+    let (verification_config_pda, _bump) =
+        find_verification_config_pda(mint_keypair.pubkey(), TRANSFER_DISCRIMINATOR);
+
+    // Attempt to initialize verification config for TRANSFER with empty vector - should fail
+    let initialize_verification_config_args = InitializeVerificationConfigArgs {
+        instruction_discriminator: TRANSFER_DISCRIMINATOR,
+        cpi_mode: false,
+        program_addresses: vec![], // Empty vector - should be rejected
+    };
+
+    let init_ix = InitializeVerificationConfigBuilder::new()
+        .mint(mint_keypair.pubkey())
+        .verification_config_or_mint_authority(mint_authority_pda)
+        .instructions_sysvar_or_creator(context.payer.pubkey())
+        .mint_account(mint_keypair.pubkey())
+        .payer(context.payer.pubkey())
+        .config_account(verification_config_pda)
+        .initialize_verification_config_args(initialize_verification_config_args)
+        .instruction();
+
+    let result = send_tx(
+        &context.banks_client,
+        vec![init_ix],
+        &context.payer.pubkey(),
+        vec![&context.payer],
+    )
+    .await;
+
+    // Should fail at initialization because vector is empty
+    assert_instruction_error(result, "InvalidArgument");
+
+    // Now verify that even if we had a valid config and then tried to trim it to empty,
+    // the transfer would fail. First create a valid config with one program
+    let program_1 = Pubkey::new_unique();
+    let valid_verification_config_args = InitializeVerificationConfigArgs {
+        instruction_discriminator: TRANSFER_DISCRIMINATOR,
+        cpi_mode: false,
+        program_addresses: vec![program_1],
+    };
+
+    initialize_verification_config(
+        &mint_keypair,
+        &mut context,
+        mint_authority_pda,
+        verification_config_pda,
+        &valid_verification_config_args,
+    )
+    .await;
+
+    // Create source account (destination not needed for this test)
+    let source_account = create_spl_account(&mut context, &mint_keypair, &source_keypair).await;
+
+    // Create a valid verification config for MINT (needed to mint tokens)
+    let (mint_verification_config_pda, _bump) =
+        find_verification_config_pda(mint_keypair.pubkey(), MINT_DISCRIMINATOR);
+
+    let mint_verification_config_args = InitializeVerificationConfigArgs {
+        instruction_discriminator: MINT_DISCRIMINATOR,
+        cpi_mode: false,
+        program_addresses: get_default_verification_programs(), // Valid non-empty vector
+    };
+
+    initialize_verification_config(
+        &mint_keypair,
+        &mut context,
+        mint_authority_pda,
+        mint_verification_config_pda,
+        &mint_verification_config_args,
+    )
+    .await;
+
+    // Mint some tokens to source account
+    use security_token_client::instructions::MintBuilder;
+    let mint_ix = MintBuilder::new()
+        .mint(mint_keypair.pubkey())
+        .verification_config(mint_verification_config_pda)
+        .instructions_sysvar(sysvar::instructions::ID)
+        .mint_account(mint_keypair.pubkey())
+        .mint_authority(mint_authority_pda)
+        .destination(source_account)
+        .amount(200_000)
+        .instruction();
+    let dummy_mint_ix = create_dummy_verification_from_instruction(&mint_ix);
+    let result = send_tx(
+        &context.banks_client,
+        vec![dummy_mint_ix, mint_ix],
+        &context.payer.pubkey(),
+        vec![&context.payer],
+    )
+    .await;
+    assert_transaction_success(result);
+
+    // Now try to trim the config to size 0 without closing - should fail
+    let trim_verification_config_args = TrimVerificationConfigArgs {
+        instruction_discriminator: TRANSFER_DISCRIMINATOR,
+        size: 0,
+        close: false, // Not closing, just trimming to 0 - should be rejected
+    };
+
+    let trim_config_ix = TrimVerificationConfigBuilder::new()
+        .mint(mint_keypair.pubkey())
+        .verification_config_or_mint_authority(mint_authority_pda)
+        .instructions_sysvar_or_creator(context.payer.pubkey())
+        .config_account(verification_config_pda)
+        .mint_account(mint_keypair.pubkey())
+        .recipient(context.payer.pubkey())
+        .trim_verification_config_args(trim_verification_config_args)
+        .instruction();
+    let dummy_trim_ix = create_dummy_verification_from_instruction(&trim_config_ix);
+
+    let result = send_tx(
+        &context.banks_client,
+        vec![dummy_trim_ix, trim_config_ix],
+        &context.payer.pubkey(),
+        vec![&context.payer],
+    )
+    .await;
+
+    // Should fail because trimming to 0 without closing would result in empty vector
+    // The error is InvalidAccountData because it's validated by VerificationConfig::validate()
+    assert_instruction_error(result, "InvalidAccountData");
 }

@@ -10,7 +10,7 @@
     "build": "./scripts/build.sh",
     "build-all": "pnpm build && pnpm generate-idl && pnpm generate-clients",
     "deploy:all": "pnpm deploy:program && pnpm deploy:transfer-hook",
-    "deploy:program": "./scripts/deploy.sh && ./scripts/deploy-transfer-hook.sh",
+    "deploy:program": "./scripts/deploy.sh",
     "deploy:transfer-hook": "./scripts/deploy-transfer-hook.sh",
     "generate-clients": "node ./scripts/generate-clients.js",
     "generate-idl": "shank idl -r program -o idl",

@@ -5,8 +5,10 @@
 set -e
 
 PROGRAM_NAME="security_token_program"
-PROGRAM_PATH="program/target/deploy/${PROGRAM_NAME}.so"
-KEYPAIR_PATH="program/target/deploy/${PROGRAM_NAME}-keypair.json"
+OUT_DIR="${SBF_OUT_DIR:-${BPF_OUT_DIR:-target/deploy}}"
+PROGRAM_PATH="${PROGRAM_PATH:-${OUT_DIR}/${PROGRAM_NAME}.so}"
+PROGRAM_KEYPAIR_PATH="${PROGRAM_KEYPAIR_PATH:-${OUT_DIR}/${PROGRAM_NAME}-keypair.json}"
+DEPLOYER_KEYPAIR="${DEPLOYER_KEYPAIR:-${SOLANA_KEYPAIR:-$HOME/.config/solana/id.json}}"
 
 echo "🚀 Deploying Security Token Program..."
 
@@ -14,6 +16,16 @@ echo "🚀 Deploying Security Token Program..."
 if [ ! -f "$PROGRAM_PATH" ]; then
     echo "❌ Program not found. Building..."
     cargo build-sbf --manifest-path program/Cargo.toml
+fi
+if [ ! -f "$PROGRAM_KEYPAIR_PATH" ]; then
+    echo "❌ Program keypair not found: $PROGRAM_KEYPAIR_PATH"
+    echo "Run 'cargo build-sbf --manifest-path program/Cargo.toml' to generate it."
+    exit 1
+fi
+if [ ! -f "$DEPLOYER_KEYPAIR" ]; then
+    echo "❌ Deployer keypair not found: $DEPLOYER_KEYPAIR"
+    echo "Set DEPLOYER_KEYPAIR or SOLANA_KEYPAIR to override."
+    exit 1
 fi
 
 # Deploy to devnet by default
@@ -26,15 +38,18 @@ solana config set --url https://api.$CLUSTER.solana.com
 # Request airdrop if needed (only for devnet/testnet)
 if [ "$CLUSTER" = "devnet" ] || [ "$CLUSTER" = "testnet" ]; then
     echo "💰 Requesting airdrop..."
-    solana airdrop 2 || echo "Airdrop failed, continuing..."
+    solana airdrop 2 --keypair "$DEPLOYER_KEYPAIR" || echo "Airdrop failed, continuing..."
 fi
 
 # Deploy the program
 echo "📦 Deploying program..."
-solana program deploy "$PROGRAM_PATH" --keypair "$KEYPAIR_PATH" --url https://api.$CLUSTER.solana.com
+solana program deploy "$PROGRAM_PATH" \
+  --program-id "$PROGRAM_KEYPAIR_PATH" \
+  --keypair "$DEPLOYER_KEYPAIR" \
+  --url "https://api.$CLUSTER.solana.com"
 
 # Get program ID
-PROGRAM_ID=$(solana-keygen pubkey "$KEYPAIR_PATH")
+PROGRAM_ID=$(solana-keygen pubkey "$PROGRAM_KEYPAIR_PATH")
 echo "✅ Program deployed successfully!"
 echo "📋 Program ID: $PROGRAM_ID"
 echo "🌐 Cluster: $CLUSTER"

@@ -195,9 +195,64 @@ solana airdrop 2
 
 **Note:** If the airdrop fails (common on devnet due to rate limits), use the [Solana Faucet](https://faucet.solana.com/) to request devnet SOL manually.
 
+**Environment variables (deployment):**
+
+- `DEPLOYER_KEYPAIR` — fee-payer keypair (defaults to `SOLANA_KEYPAIR` or `~/.config/solana/id.json`)
+- `SOLANA_KEYPAIR` — legacy override for deployer keypair
+- `SBF_OUT_DIR` / `BPF_OUT_DIR` — directory containing `.so` and program keypairs (default `target/deploy`)
+- `PROGRAM_KEYPAIR_PATH` — override main program keypair path
+- `TRANSFER_HOOK_KEYPAIR_PATH` — override transfer hook keypair path
+- `PROGRAM_PATH` — override main program `.so` path
+- `TRANSFER_HOOK_PROGRAM_PATH` — override transfer hook `.so` path
+
 ### Deploy Programs
 
 By default, programs deploy to **devnet**. To deploy to a different cluster (testnet or mainnet), pass the cluster name as an argument.
+
+### Vanity Program IDs (Required for custom IDs)
+
+If you plan to deploy with **custom program IDs** (vanity or not), you must set those IDs in code **before** building and deploying. The program IDs are baked into:
+
+- `program/src/lib.rs` (`declare_id!` for the main program)
+- `transfer_hook/src/lib.rs`:
+  - `declare_id!` for the transfer hook program ID
+  - `SECURITY_TOKEN_PROGRAM_ID` (must match the main program ID)
+- `program/src/constants.rs` (`TRANSFER_HOOK_PROGRAM_ID`)
+- `idl/security_token_program.json` (program address)
+
+After updating the IDs in code, regenerate IDL + clients:
+
+```bash
+pnpm generate-idl
+pnpm generate-clients
+```
+
+**Generate vanity keypairs:**
+
+```bash
+# Example: find a keypair starting with "SSTS"
+solana-keygen grind --starts-with SSTS:1 --ignore-case
+```
+
+**Move them into place (recommended):**
+
+```bash
+# Main program keypair
+mkdir -p target/deploy
+mv <GENERATED_KEYPAIR.json> target/deploy/security_token_program-keypair.json
+
+# Transfer hook keypair
+mkdir -p target/deploy
+mv <GENERATED_KEYPAIR.json> target/deploy/security_token_transfer_hook-keypair.json
+```
+
+**Alternative:** keep them elsewhere and point the deploy scripts at them:
+
+```bash
+PROGRAM_KEYPAIR_PATH=/path/to/security_token_program-keypair.json \
+TRANSFER_HOOK_KEYPAIR_PATH=/path/to/security_token_transfer_hook-keypair.json \
+pnpm run deploy:all
+```
 
 **Deploy both programs (recommended):**
 

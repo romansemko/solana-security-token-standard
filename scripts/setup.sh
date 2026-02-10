@@ -44,13 +44,17 @@ fi
 echo "🏗️  Building Security Token program..."
 cargo build-sbf --manifest-path program/Cargo.toml
 
+# Build the hook
+echo "🏗️  Building Security Token transfer hook..."
+cargo build-sbf --manifest-path transfer_hook/Cargo.toml
+
 # Build the client
 echo "📚 Building Rust client..."
-cargo build --manifest-path client/rust/Cargo.toml
+cargo build --manifest-path clients/rust/Cargo.toml
 
 # Run tests
 echo "🧪 Running tests..."
-cargo test --all
+SBF_OUT_DIR=$(pwd)/target/deploy cargo test --all
 
 # Request airdrop for development
 echo "💰 Requesting SOL airdrop for development..."
@@ -60,5 +64,5 @@ echo "✅ Development environment setup complete!"
 echo ""
 echo "Next steps:"
 echo "1. Deploy your program: ./scripts/deploy.sh"
-echo "2. Run integration tests: cargo test --manifest-path tests/Cargo.toml"
+echo "2. Run integration tests: SBF_OUT_DIR=\$(pwd)/target/deploy cargo test --manifest-path tests/Cargo.toml"
 echo "3. Start developing! 🚀"

@@ -21,7 +21,7 @@ use spl_transfer_hook_interface::instruction::{
     UpdateExtraAccountMetaListInstruction,
 };
 pub static SECURITY_TOKEN_PROGRAM_ID: Pubkey =
-    pubkey!("Gwbvvf4L2BWdboD1fT7Ax6JrgVCKv5CN6MqkwsEhjRdH");
+    pubkey!("SSTS8Qk2bW3aVaBEsY1Ras95YdbaaYQQx21JWHxvjap");
 const PERMANENT_DELEGATE_SEED: &[u8] = b"mint.permanent_delegate";
 const TRANSFER_HOOK_SEED: &[u8] = b"mint.transfer_hook";
 const EXTRA_ACCOUNT_METAS_SEED: &[u8] = b"extra-account-metas";
@@ -31,7 +31,7 @@ const TRANSFER_VERIFICATION_CONFIG_DISCRIMINATOR: u8 = 1; // Account discriminat
 const MAX_VERIFICATION_PROGRAMS: usize = 10;
 
 // NOTE: Replace with the finalized program ID generated for the transfer hook deployment.
-declare_id!("DTUuEirVJFg53cKgyTPKtVgvi5SV5DCDQpvbmdwBtYdd");
+declare_id!("HookXqLKgPaNrHBJ9Jui7oQZz93vMbtA88JjsLa8bmfL");
 
 #[cfg(not(feature = "no-entrypoint"))]
 use pinocchio::entrypoint;

@@ -36,7 +36,7 @@ cargo build --all
 run_tests "unit" "program/Cargo.toml" "Program Unit Tests"
 
 # Run client tests
-run_tests "client" "client/rust/Cargo.toml" "Client Library Tests"
+run_tests "client" "clients/rust/Cargo.toml" "Client Library Tests"
 
 # Build program for testing
 echo "🔨 Building program for integration tests..."

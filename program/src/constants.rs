@@ -33,7 +33,7 @@ pub const INSTRUCTION_ACCOUNTS_OFFSET: usize = 3;
 
 /// Transfer hook program ID for security token transfers
 pub const TRANSFER_HOOK_PROGRAM_ID: Pubkey =
-    pubkey!("DTUuEirVJFg53cKgyTPKtVgvi5SV5DCDQpvbmdwBtYdd");
+    pubkey!("HookXqLKgPaNrHBJ9Jui7oQZz93vMbtA88JjsLa8bmfL");
 
 /// Size of action_id field (u64 type = 8 bytes)
 pub const ACTION_ID_LEN: usize = 8;

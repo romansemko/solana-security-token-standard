@@ -36,4 +36,4 @@ pub mod test_utils;
 pub mod utils;
 use pinocchio_pubkey::declare_id;
 
-declare_id!("Gwbvvf4L2BWdboD1fT7Ax6JrgVCKv5CN6MqkwsEhjRdH");
+declare_id!("SSTS8Qk2bW3aVaBEsY1Ras95YdbaaYQQx21JWHxvjap");

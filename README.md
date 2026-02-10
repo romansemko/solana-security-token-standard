@@ -175,10 +175,10 @@ The test script automatically runs additional quality checks:
 - Code formatting (`cargo fmt --check`)
 - Linting (`cargo clippy`)
 - Security audit (`cargo audit` - if installed)
-- License compliance (`cargo deny` - if installed)
 
 These checks run automatically and don't require any parameters.
 
+For license compliance checks, run `cargo deny check` manually (if installed).
 ## Deployment
 
 ### Prerequisites

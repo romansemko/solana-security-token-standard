@@ -20,7 +20,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.87.0"
+          toolchain: "1.89.0"
 
       - name: Install Solana CLI
         run: |
@@ -70,7 +70,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.87.0"
+          toolchain: "1.89.0"
           components: rustfmt, clippy
 
       - name: Cache dependencies
@@ -103,7 +103,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.87.0"
+          toolchain: "1.89.0"
 
       - name: Install Solana CLI
         run: |

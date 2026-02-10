@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Host build for the whole workspace (skip if 'sbf' param is passed)
+set -e
 if [ "$1" != "sbf" ]; then
   cargo build --workspace
 fi

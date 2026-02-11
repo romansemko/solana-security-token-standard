@@ -19,9 +19,10 @@ Before you begin, ensure you have the following installed:
 - **Rust** (latest stable version)
   - Install from [https://rustup.rs/](https://rustup.rs/)
   - Required components: `rustfmt`, `clippy`
-- **Solana CLI** (v1.18.0 or later)
-  - Install: `sh -c "$(curl -sSfL https://release.solana.com/stable/install)"`
+- **Solana CLI** (recommended: v2.2.0)
+  - Install (pinned): `sh -c "$(curl -sSfL https://release.anza.xyz/v2.2.0/install)"`
   - Verify: `solana --version`
+  - Warning: Newer Solana CLI versions (e.g., 3.x) may not be compatible with the local test harness yet. If you see flaky or failing tests, downgrade to v2.2.0.
 
 - **Node.js** (v18 or later) and **pnpm**
   - Install Node.js from [https://nodejs.org/](https://nodejs.org/)

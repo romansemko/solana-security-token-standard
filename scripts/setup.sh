@@ -7,6 +7,10 @@ set -e
 
 echo "🔧 Setting up Security Token Standard development environment..."
 
+# Clean previous builds to avoid stale artifacts (especially after toolchain changes)
+echo "🧹 Cleaning previous builds..."
+cargo clean
+
 # Check if Rust is installed
 if ! command -v rustc &> /dev/null; then
     echo "❌ Rust is not installed. Please install Rust first: https://rustup.rs/"
@@ -24,11 +28,31 @@ fi
 echo "🦀 Installing Rust components..."
 rustup component add rustfmt clippy
 
-# Install cargo tools
+# Install cargo tools (pinned versions for Rust 1.87 compatibility)
 echo "🔨 Installing cargo tools..."
-cargo install cargo-audit || echo "cargo-audit already installed"
-cargo install cargo-deny || echo "cargo-deny already installed"
-cargo install cargo-expand || echo "cargo-expand already installed"
+CARGO_AUDIT_VERSION="0.22.1"
+CARGO_DENY_VERSION="0.18.3"
+CARGO_EXPAND_VERSION="1.0.118"
+
+install_cargo_tool() {
+    local name="$1"
+    local version="$2"
+
+    if command -v "$name" &> /dev/null; then
+        local current
+        current="$("$name" --version | awk '{print $2}')"
+        if [ "$current" = "$version" ]; then
+            echo "✅ $name $version already installed"
+            return 0
+        fi
+    fi
+
+    cargo install "$name" --version "$version" --locked --force
+}
+
+install_cargo_tool cargo-audit "$CARGO_AUDIT_VERSION"
+install_cargo_tool cargo-deny "$CARGO_DENY_VERSION"
+install_cargo_tool cargo-expand "$CARGO_EXPAND_VERSION"
 
 # Set Solana to devnet
 echo "🌐 Configuring Solana CLI for devnet..."
@@ -54,7 +78,9 @@ cargo build --manifest-path clients/rust/Cargo.toml
 
 # Run tests
 echo "🧪 Running tests..."
-SBF_OUT_DIR=$(pwd)/target/deploy cargo test --all
+export SBF_OUT_DIR="$(pwd)/target/deploy"
+export BPF_OUT_DIR="$SBF_OUT_DIR"
+cargo test --all
 
 # Request airdrop for development
 echo "💰 Requesting SOL airdrop for development..."

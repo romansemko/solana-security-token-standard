@@ -54,7 +54,13 @@ pub async fn execute_convert(
 
     let dummy_convert_ix = create_dummy_verification_from_instruction(&convert_ix);
 
-    send_tx(banks_client, vec![dummy_convert_ix, convert_ix], &payer.pubkey(), vec![payer]).await
+    send_tx(
+        banks_client,
+        vec![dummy_convert_ix, convert_ix],
+        &payer.pubkey(),
+        vec![payer],
+    )
+    .await
 }
 
 pub async fn create_convert_verification_config(

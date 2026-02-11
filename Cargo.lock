@@ -3717,6 +3717,7 @@ dependencies = [
  "num-traits",
  "serde",
  "serde_with",
+ "solana-account",
  "solana-account-info",
  "solana-client",
  "solana-cpi",

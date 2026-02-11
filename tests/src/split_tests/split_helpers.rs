@@ -8,7 +8,9 @@ use solana_sdk::{
     signature::{Keypair, Signer},
 };
 
-use crate::helpers::{create_dummy_verification_from_instruction, create_verification_config, send_tx};
+use crate::helpers::{
+    create_dummy_verification_from_instruction, create_verification_config, send_tx,
+};
 
 /// Build and send Split instruction
 pub async fn execute_split(
@@ -42,7 +44,13 @@ pub async fn execute_split(
 
     let dummy_split_ix = create_dummy_verification_from_instruction(&split_ix);
 
-    send_tx(banks_client, vec![dummy_split_ix, split_ix], &payer.pubkey(), vec![payer]).await
+    send_tx(
+        banks_client,
+        vec![dummy_split_ix, split_ix],
+        &payer.pubkey(),
+        vec![payer],
+    )
+    .await
 }
 
 pub async fn create_split_verification_config(

@@ -1,10 +1,10 @@
 use security_token_client::{
     instructions::{
-        CloseClaimReceiptAccount, CloseClaimReceiptAccountInstructionArgs,
         CloseActionReceiptAccount, CloseActionReceiptAccountInstructionArgs,
+        CloseClaimReceiptAccount, CloseClaimReceiptAccountInstructionArgs,
     },
     programs::SECURITY_TOKEN_PROGRAM_ID,
-    types::{CloseClaimReceiptArgs, CloseActionReceiptArgs},
+    types::{CloseActionReceiptArgs, CloseClaimReceiptArgs},
 };
 use solana_keccak_hasher::hashv;
 use solana_program_test::*;

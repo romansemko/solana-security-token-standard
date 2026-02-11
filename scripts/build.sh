@@ -2,6 +2,10 @@
 
 # Host build for the whole workspace (skip if 'sbf' param is passed)
 set -e
+
+echo "🧹 Cleaning previous builds..."
+cargo clean
+
 if [ "$1" != "sbf" ]; then
   cargo build --workspace
 fi

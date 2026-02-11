@@ -20,7 +20,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.89.0"
+          toolchain: "1.87.0"
 
       - name: Install Solana CLI
         run: |
@@ -70,8 +70,11 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.89.0"
+          toolchain: "1.87.0"
           components: rustfmt, clippy
+
+      - name: Ensure rustfmt & clippy components
+        run: rustup component add rustfmt clippy --toolchain 1.87.0
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -89,7 +92,43 @@ jobs:
         run: cargo fmt -p security-token-program -p security-token-transfer-hook -- --check
 
       - name: Clippy
-        run: cargo clippy -p security-token-program -p security-token-transfer-hook -- -D warnings
+        run: |
+          cargo clippy -p security-token-program -p security-token-transfer-hook -- \
+            -D warnings
+
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.87.0"
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-audit-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-audit-
+            ${{ runner.os }}-cargo-
+
+      - name: Install cargo tools (pinned)
+        run: |
+          cargo install cargo-audit --version 0.22.1 --locked
+          cargo install cargo-deny --version 0.18.3 --locked
+
+      - name: Audit advisories
+        run: cargo audit
+
+      - name: Audit licenses
+        run: cargo deny check licenses -c deny.toml --hide-inclusion-graph
 
   test:
     name: Test
@@ -103,7 +142,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.89.0"
+          toolchain: "1.87.0"
 
       - name: Install Solana CLI
         run: |

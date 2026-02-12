@@ -9,7 +9,7 @@
   "scripts": {
     "build": "./scripts/build.sh",
     "build-all": "pnpm build && pnpm generate-idl && pnpm generate-clients",
-    "deploy:all": "./scripts/deploy.sh \"$@\" && ./scripts/deploy-transfer-hook.sh \"$@\"",
+    "deploy:all": "bash -c \"if [ \\\"\\$1\\\" = \\\"--\\\" ]; then CLUSTER=\\${2:-devnet}; else CLUSTER=\\${1:-devnet}; fi; ./scripts/deploy.sh \\\"\\$CLUSTER\\\" && ./scripts/deploy-transfer-hook.sh \\\"\\$CLUSTER\\\"\" --",
     "deploy:program": "./scripts/deploy.sh",
     "deploy:transfer-hook": "./scripts/deploy-transfer-hook.sh",
     "generate-clients": "node ./scripts/generate-clients.js",

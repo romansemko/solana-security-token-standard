@@ -11,7 +11,6 @@ run_tests() {
     local test_type=$1
     local path=$2
     local description=$3
-    # Integration tests can be flaky when run in parallel; run them single-threaded.
     echo ""
     echo "📋 Running $description..."
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

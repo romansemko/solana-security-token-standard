@@ -61,8 +61,10 @@ If you prefer manual setup:
 # Install Rust components
 rustup component add rustfmt clippy
 
-# Install cargo tools
-cargo install cargo-audit cargo-deny cargo-expand
+# Install cargo tools (pinned for Rust 1.87 compatibility)
+cargo install cargo-audit --version 0.22.1 --locked
+cargo install cargo-deny --version 0.18.3 --locked
+cargo install cargo-expand --version 1.0.118 --locked
 
 # Configure Solana for devnet
 solana config set --url https://api.devnet.solana.com

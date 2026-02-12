@@ -31,7 +31,8 @@ fi
 
 # Install required Rust components
 echo "🦀 Installing Rust components..."
-rustup component add rustfmt clippy
+RUST_TOOLCHAIN_VERSION="1.87.0"
+rustup component add --toolchain "$RUST_TOOLCHAIN_VERSION" rustfmt clippy
 
 # Install cargo tools (pinned versions for Rust 1.87 compatibility)
 echo "🔨 Installing cargo tools..."

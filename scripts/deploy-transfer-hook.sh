@@ -1,25 +1,25 @@
 #!/bin/bash
 
-# Security Token Program Deployment Script
+# Security Token Transfer Hook Deployment Script
 
 set -e
 
-PROGRAM_NAME="security_token_program"
+PROGRAM_NAME="security_token_transfer_hook"
 OUT_DIR="${SBF_OUT_DIR:-${BPF_OUT_DIR:-target/deploy}}"
-PROGRAM_PATH="${PROGRAM_PATH:-${OUT_DIR}/${PROGRAM_NAME}.so}"
-PROGRAM_KEYPAIR_PATH="${PROGRAM_KEYPAIR_PATH:-${OUT_DIR}/${PROGRAM_NAME}-keypair.json}"
+PROGRAM_PATH="${TRANSFER_HOOK_PROGRAM_PATH:-${OUT_DIR}/${PROGRAM_NAME}.so}"
+PROGRAM_KEYPAIR_PATH="${TRANSFER_HOOK_KEYPAIR_PATH:-${OUT_DIR}/${PROGRAM_NAME}-keypair.json}"
 DEPLOYER_KEYPAIR="${DEPLOYER_KEYPAIR:-${SOLANA_KEYPAIR:-$HOME/.config/solana/id.json}}"
 
-echo "🚀 Deploying Security Token Program..."
+echo "🚀 Deploying Security Token Transfer Hook..."
 
 # Check if program exists
 if [ ! -f "$PROGRAM_PATH" ]; then
     echo "❌ Program not found. Building..."
-    cargo build-sbf --manifest-path program/Cargo.toml
+    cargo build-sbf --manifest-path transfer_hook/Cargo.toml
 fi
 if [ ! -f "$PROGRAM_KEYPAIR_PATH" ]; then
     echo "❌ Program keypair not found: $PROGRAM_KEYPAIR_PATH"
-    echo "Run 'cargo build-sbf --manifest-path program/Cargo.toml' to generate it."
+    echo "Run 'cargo build-sbf --manifest-path transfer_hook/Cargo.toml' to generate it."
     exit 1
 fi
 if [ ! -f "$DEPLOYER_KEYPAIR" ]; then
@@ -55,8 +55,8 @@ echo "📋 Program ID: $PROGRAM_ID"
 echo "🌐 Cluster: $CLUSTER"
 
 # Save program ID to file
-echo "$PROGRAM_ID" > program_id.txt
-echo "💾 Program ID saved to program_id.txt"
+echo "$PROGRAM_ID" > transfer_hook_program_id.txt
+echo "💾 Program ID saved to transfer_hook_program_id.txt"
 
 # Verify deployment
 echo "🔍 Verifying deployment..."

@@ -40,7 +40,7 @@ import {
 } from '../instructions';
 
 export const SECURITY_TOKEN_PROGRAM_PROGRAM_ADDRESS =
-  'Gwbvvf4L2BWdboD1fT7Ax6JrgVCKv5CN6MqkwsEhjRdH' as Address<'Gwbvvf4L2BWdboD1fT7Ax6JrgVCKv5CN6MqkwsEhjRdH'>;
+  'SSTS8Qk2bW3aVaBEsY1Ras95YdbaaYQQx21JWHxvjap' as Address<'SSTS8Qk2bW3aVaBEsY1Ras95YdbaaYQQx21JWHxvjap'>;
 
 export enum SecurityTokenProgramAccount {
   MintAuthority,
@@ -158,7 +158,7 @@ export function identifySecurityTokenProgramInstruction(
 }
 
 export type ParsedSecurityTokenProgramInstruction<
-  TProgram extends string = 'Gwbvvf4L2BWdboD1fT7Ax6JrgVCKv5CN6MqkwsEhjRdH',
+  TProgram extends string = 'SSTS8Qk2bW3aVaBEsY1Ras95YdbaaYQQx21JWHxvjap',
 > =
   | ({
       instructionType: SecurityTokenProgramInstruction.InitializeMint;

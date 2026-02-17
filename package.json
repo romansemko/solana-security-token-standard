@@ -1,23 +1,28 @@
 {
   "name": "solana_security_token",
   "version": "1.0.0",
-  "description": "pending",
+  "description": "Security Token Standard program for Solana",
   "private": true,
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "generate-idl": "shank idl -r program -o idl",
+    "build": "./scripts/build.sh",
+    "build-all": "pnpm build && pnpm generate-idl && pnpm generate-clients",
+    "deploy:all": "bash -c \"if [ \\\"\\$1\\\" = \\\"--\\\" ]; then CLUSTER=\\${2:-devnet}; else CLUSTER=\\${1:-devnet}; fi; ./scripts/deploy.sh \\\"\\$CLUSTER\\\" && ./scripts/deploy-transfer-hook.sh \\\"\\$CLUSTER\\\"\" --",
+    "deploy:program": "./scripts/deploy.sh",
+    "deploy:transfer-hook": "./scripts/deploy-transfer-hook.sh",
     "generate-clients": "node ./scripts/generate-clients.js",
-    "build-all": "cargo-build-sbf && pnpm generate-idl && pnpm generate-clients",
-    "test": "cargo-build-sbf && SBF_OUT_DIR=$(pwd)/target/deploy cargo test"
+    "generate-idl": "shank idl -r program -o idl",
+    "setup": "./scripts/setup.sh",
+    "test": "pnpm build && SBF_OUT_DIR=$(pwd)/target/deploy cargo test"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hoodieshq/security-token.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "SSTS Foundation",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/hoodieshq/security-token/issues"

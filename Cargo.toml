@@ -5,7 +5,7 @@ members = ["program", "transfer_hook", "clients/rust", "tests"]
 [workspace.package]
 version = "0.1.0"
 description = "Security Token Standard program for Solana"
-authors = [""]
+authors = ["SSTS Foundation"]
 repository = "https://github.com/hoodieshq/security-token"
 license = "Apache-2.0"
 edition = "2021"

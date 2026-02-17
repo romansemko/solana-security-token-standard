@@ -9,4 +9,4 @@ use solana_pubkey::{pubkey, Pubkey};
 
 /// `security_token_program` program ID.
 pub const SECURITY_TOKEN_PROGRAM_ID: Pubkey =
-    pubkey!("Gwbvvf4L2BWdboD1fT7Ax6JrgVCKv5CN6MqkwsEhjRdH");
+    pubkey!("SSTS8Qk2bW3aVaBEsY1Ras95YdbaaYQQx21JWHxvjap");

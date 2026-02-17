@@ -18,6 +18,7 @@ Thumbs.db
 *.so
 test-ledger/
 program_id.txt
+transfer_hook_program_id.txt
 
 # Logs
 *.log

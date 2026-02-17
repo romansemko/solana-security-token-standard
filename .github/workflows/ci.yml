@@ -55,6 +55,14 @@ jobs:
         working-directory: ./transfer_hook
         run: cargo build-sbf
 
+      - name: Install query-security-txt
+        run: cargo install query-security-txt --version 1.1.2 --locked
+
+      - name: Validate embedded security.txt metadata
+        run: |
+          query-security-txt target/deploy/security_token_program.so
+          query-security-txt target/deploy/security_token_transfer_hook.so
+
       - name: Upload SBF artifacts
         uses: actions/upload-artifact@v4
         with:

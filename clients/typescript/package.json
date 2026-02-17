@@ -1,5 +1,5 @@
 {
-  "name": "security-token-client",
+  "name": "@ssts-org/client",
   "version": "0.1.0",
   "description": "TypeScript client for Security Token Program",
   "main": "dist/index.js",

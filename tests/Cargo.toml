@@ -11,7 +11,7 @@ publish = false
 [dependencies]
 assert_matches = "1.5.0"
 security-token-program = { path = "../program", features = ["no-entrypoint"] }
-security-token-client = { path = "../clients/rust" }
+security-token-client = { package = "ssts-org-client", path = "../clients/rust" }
 security-token-transfer-hook = { path = "../transfer_hook", features = [
     "no-entrypoint",
 ] }

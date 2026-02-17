@@ -24,6 +24,7 @@ pinocchio-system = { workspace = true }
 pinocchio-token-2022 = { workspace = true }
 pinocchio-log = { workspace = true }
 pinocchio-associated-token-account = { workspace = true }
+solana-security-txt = "1.1.2"
 thiserror = { workspace = true }
 bs58 = { workspace = true }
 shank = { workspace = true }

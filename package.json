@@ -19,15 +19,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hoodieshq/security-token.git"
+    "url": "git+https://github.com/Solana-Security-Token-Standard/solana-security-token-standard.git"
   },
   "keywords": [],
   "author": "SSTS Foundation",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/hoodieshq/security-token/issues"
+    "url": "https://github.com/Solana-Security-Token-Standard/solana-security-token-standard/issues"
   },
-  "homepage": "https://github.com/hoodieshq/security-token#readme",
+  "homepage": "https://ssts.org",
   "dependencies": {
     "@codama/errors": "^1.3.2",
     "@codama/nodes": "^1.3.2",

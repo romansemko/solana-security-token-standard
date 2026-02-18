@@ -108,7 +108,7 @@ async fn test_initialize_mint_with_all_extensions() {
     let additional_metadata: Vec<(String, String)> = vec![
         ("type".to_string(), "security".to_string()),
         ("compliance".to_string(), "reg_d".to_string()),
-        ("issuer".to_string(), "Hoodies Inc".to_string()),
+        ("issuer".to_string(), "SSTS Foundation".to_string()),
         ("industry".to_string(), "blockchain".to_string()),
     ];
 
@@ -362,7 +362,7 @@ async fn test_update_metadata() {
     let additional_metadata: Vec<(String, String)> = vec![
         ("type".to_string(), "security".to_string()),
         ("compliance".to_string(), "reg_d".to_string()),
-        ("issuer".to_string(), "Hoodies Inc".to_string()),
+        ("issuer".to_string(), "SSTS Foundation".to_string()),
         ("industry".to_string(), "blockchain".to_string()),
     ];
 

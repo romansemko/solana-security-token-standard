@@ -169,6 +169,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator-api2"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1443,6 +1449,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
+name = "foldhash"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+
+[[package]]
 name = "foreign-types"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1688,9 +1700,14 @@ checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
 name = "hashbrown"
-version = "0.15.5"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
+checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash",
+]
 
 [[package]]
 name = "heck"
@@ -2064,7 +2081,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2481980430f9f78649238835720ddccc57e52df14ffce1c6f37391d61b563e9"
 dependencies = [
  "equivalent",
- "hashbrown 0.15.5",
+ "hashbrown 0.15.2",
  "serde",
 ]
 
@@ -3709,27 +3726,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "security-token-client"
-version = "1.0.0"
-dependencies = [
- "borsh 0.10.4",
- "num-derive",
- "num-traits",
- "serde",
- "serde_with",
- "solana-account",
- "solana-account-info",
- "solana-client",
- "solana-cpi",
- "solana-instruction",
- "solana-program",
- "solana-program-error",
- "solana-pubkey",
- "solana-sdk",
- "thiserror 2.0.16",
-]
-
-[[package]]
 name = "security-token-program"
 version = "0.1.0"
 dependencies = [
@@ -3746,6 +3742,7 @@ dependencies = [
  "rstest",
  "shank",
  "solana-keccak-hasher",
+ "solana-security-txt",
  "spl-merkle-tree-reference",
  "spl-pod 0.5.1",
  "spl-tlv-account-resolution 0.9.0",
@@ -3759,7 +3756,6 @@ dependencies = [
  "assert_matches",
  "borsh 0.10.4",
  "rstest",
- "security-token-client",
  "security-token-program",
  "security-token-transfer-hook",
  "solana-keccak-hasher",
@@ -3777,6 +3773,7 @@ dependencies = [
  "spl-token-metadata-interface",
  "spl-transfer-hook-interface 0.9.0",
  "spl-type-length-value 0.7.0",
+ "ssts-org-client",
  "tokio",
 ]
 
@@ -3791,6 +3788,7 @@ dependencies = [
  "pinocchio-system",
  "pinocchio-token-2022",
  "solana-pubkey",
+ "solana-security-txt",
  "spl-discriminator",
  "spl-pod 0.4.0",
  "spl-tlv-account-resolution 0.9.0",
@@ -6230,9 +6228,12 @@ dependencies = [
 
 [[package]]
 name = "solana-security-txt"
-version = "1.1.1"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "468aa43b7edb1f9b7b7b686d5c3aeb6630dc1708e86e31343499dd5c4d775183"
+checksum = "156bb61a96c605fa124e052d630dba2f6fb57e08c7d15b757e1e958b3ed7b3fe"
+dependencies = [
+ "hashbrown 0.15.2",
+]
 
 [[package]]
 name = "solana-seed-derivable"
@@ -7761,6 +7762,27 @@ dependencies = [
  "solana-program-error",
  "spl-discriminator",
  "spl-pod 0.5.1",
+ "thiserror 2.0.16",
+]
+
+[[package]]
+name = "ssts-org-client"
+version = "1.0.0"
+dependencies = [
+ "borsh 0.10.4",
+ "num-derive",
+ "num-traits",
+ "serde",
+ "serde_with",
+ "solana-account",
+ "solana-account-info",
+ "solana-client",
+ "solana-cpi",
+ "solana-instruction",
+ "solana-program",
+ "solana-program-error",
+ "solana-pubkey",
+ "solana-sdk",
  "thiserror 2.0.16",
 ]
 

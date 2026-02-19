@@ -20,6 +20,7 @@ pinocchio-log = { workspace = true }
 pinocchio-pubkey = { workspace = true }
 pinocchio-token-2022 = { workspace = true }
 pinocchio-system = { workspace = true }
+solana-security-txt = "1.1.2"
 spl-tlv-account-resolution = "0.9.0"
 spl-transfer-hook-interface = "0.9.0"
 spl-discriminator = "0.4.0"

@@ -1,5 +1,5 @@
 {
-  "name": "security-token-client",
+  "name": "@ssts-org/client",
   "version": "0.1.0",
   "description": "TypeScript client for Security Token Program",
   "main": "dist/index.js",
@@ -9,7 +9,7 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build"
   },
-  "author": "Hoodies",
+  "author": "SSTS Foundation",
   "license": "Apache-2.0",
   "dependencies": {
     "@solana/kit": "^2.1.0"

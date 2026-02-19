@@ -35,5 +35,16 @@ pub mod test_utils;
 /// Utility functions
 pub mod utils;
 use pinocchio_pubkey::declare_id;
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
 
 declare_id!("SSTS8Qk2bW3aVaBEsY1Ras95YdbaaYQQx21JWHxvjap");
+
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    name: "SSTS Security Token Program",
+    project_url: "https://ssts.org",
+    contacts: "link:https://ssts.org/.well-known/security.txt",
+    policy: "https://github.com/Solana-Security-Token-Standard/solana-security-token-standard/blob/main/SECURITY.md",
+    source_code: "https://github.com/Solana-Security-Token-Standard/solana-security-token-standard"
+}

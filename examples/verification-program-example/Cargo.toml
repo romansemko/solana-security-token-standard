@@ -18,7 +18,7 @@ pinocchio-log = { workspace = true }
 borsh = { workspace = true }
 
 
-security-token-client = { path = "../../clients/rust" }
+security-token-client = { package = "ssts-org-client", path = "../../clients/rust" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

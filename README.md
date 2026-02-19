@@ -183,6 +183,7 @@ The test script automatically runs additional quality checks:
 These checks run automatically and don't require any parameters.
 
 For license compliance checks, run `cargo deny check` manually (if installed).
+
 ## Deployment
 
 ### Prerequisites
@@ -296,6 +297,7 @@ solana program show <PROGRAM_ID>
 
 - **[Program Instructions](./docs/program-instructions.md)** - Complete instruction reference, account structures, and authorization model
 - **[IDL](./idl/security_token_program.json)** - Codama IDL for client generation
+- **[Security Policy](./SECURITY.md)** - Disclosure process and security reporting expectations
 
 ## Development
 

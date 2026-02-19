@@ -6,7 +6,7 @@ members = ["program", "transfer_hook", "clients/rust", "tests"]
 version = "0.1.0"
 description = "Security Token Standard program for Solana"
 authors = ["SSTS Foundation"]
-repository = "https://github.com/hoodieshq/security-token"
+repository = "https://github.com/Solana-Security-Token-Standard/solana-security-token-standard"
 license = "Apache-2.0"
 edition = "2021"
 
@@ -25,7 +25,7 @@ spl-merkle-tree-reference = { version = "=1.0.0" }
 
 # Idl
 shank = "0.4.2"
-security-token-client = { path = "clients/rust" }
+security-token-client = { package = "ssts-org-client", path = "clients/rust" }
 
 # Error handling
 thiserror = "2.0.3"

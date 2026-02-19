@@ -12,6 +12,8 @@ use pinocchio::{
 use pinocchio_pubkey::{declare_id, pubkey};
 use pinocchio_system::instructions::{Allocate, Assign};
 use solana_pubkey::Pubkey as SolanaPubkey;
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
 use spl_discriminator::SplDiscriminate;
 use spl_pod::slice::PodSlice;
 use spl_tlv_account_resolution::{account::ExtraAccountMeta, state::ExtraAccountMetaList};
@@ -32,6 +34,15 @@ const MAX_VERIFICATION_PROGRAMS: usize = 10;
 
 // NOTE: Replace with the finalized program ID generated for the transfer hook deployment.
 declare_id!("HookXqLKgPaNrHBJ9Jui7oQZz93vMbtA88JjsLa8bmfL");
+
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    name: "SSTS Security Token Transfer Hook",
+    project_url: "https://ssts.org",
+    contacts: "link:https://ssts.org/.well-known/security.txt",
+    policy: "https://github.com/Solana-Security-Token-Standard/solana-security-token-standard/blob/main/SECURITY.md",
+    source_code: "https://github.com/Solana-Security-Token-Standard/solana-security-token-standard"
+}
 
 #[cfg(not(feature = "no-entrypoint"))]
 use pinocchio::entrypoint;

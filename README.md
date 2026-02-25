@@ -44,11 +44,26 @@ Run the automated setup script to install all dependencies and configure your en
 ./scripts/setup.sh
 ```
 
+After setup, verify:
+
+```bash
+solana --version  # must be 2.2.0
+pnpm --version
+shank --version
+```
+
+If `solana --version` is not `2.2.0`, place pinned Solana first in `PATH`:
+
+```bash
+export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+```
+
 This script will:
 
-- Verify Rust and Solana CLI installations
+- Verify Rust and Solana CLI installations (enforces Solana v2.2.0)
 - Install required Rust components (`rustfmt`, `clippy`)
-- Install recommended cargo tools (`cargo-audit`, `cargo-deny`, `cargo-expand`)
+- Install recommended cargo tools (`cargo-audit`, `cargo-deny`, `cargo-expand`), `shank-cli`, and `solana-verify`
+- Install Node.js dependencies via `pnpm install`
 - Configure Solana CLI for devnet
 - Generate a keypair if one doesn't exist
 - Build both the main program and transfer hook
@@ -65,6 +80,8 @@ rustup component add rustfmt clippy
 cargo install cargo-audit --version 0.22.1 --locked
 cargo install cargo-deny --version 0.18.3 --locked
 cargo install cargo-expand --version 1.0.118 --locked
+cargo install shank-cli --version 0.4.5 --locked
+cargo install solana-verify --locked
 
 # Configure Solana for devnet
 solana config set --url https://api.devnet.solana.com
